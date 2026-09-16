@@ -95,10 +95,19 @@ const CITIES_OPTIONS = [
   { value: "new-york", label: "New York" },
   { value: "north-main-st-waterbury", label: "North Main St Waterbury" },
   { value: "not-specified", label: "Not Specified" },
+  { value: "southington", label: "Southington" },
   { value: "southington-ct", label: "Southington Ct" },
+  { value: "cheshire", label: "Cheshire" },
   { value: "waterbury", label: "Waterbury" },
   { value: "berlin", label: "Berlin" },
   { value: "burlington", label: "Burlington" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "for_sale", label: "For Sale" },
+  { value: "pending", label: "Under Contract" },
+  { value: "sold", label: "Sold" },
 ];
 
 const AREAS_OPTIONS = [
@@ -151,6 +160,7 @@ function PropertiesPage() {
   const activeState = search.state || "all";
   const activeCity = search.city || "all";
   const activeArea = search.area || "all";
+  const activeStatus = search.status || "all";
   const activeOrder = search.order || "0";
 
   // Merge seed and admin store properties with strict 1:1 schema
@@ -298,10 +308,18 @@ function PropertiesPage() {
         if (!match) return false;
       }
 
+      // 7. Status Filter
+      if (activeStatus !== "all") {
+        const s = (p.status || "").toLowerCase();
+        if (activeStatus === "sold" && s !== "sold") return false;
+        if (activeStatus === "pending" && s !== "pending" && s !== "under_contract") return false;
+        if (activeStatus === "for_sale" && s !== "for_sale") return false;
+      }
+
       return true;
     });
 
-    // 7. Sorting / Order
+    // 8. Sorting / Order
     if (activeOrder === "3") {
       // Newest first
       result = [...result].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -323,7 +341,7 @@ function PropertiesPage() {
     }
 
     return result;
-  }, [allProperties, activeType, activeCategory, activeState, activeCity, activeArea, activeOrder, search.q]);
+  }, [allProperties, activeType, activeCategory, activeState, activeCity, activeArea, activeStatus, activeOrder, search.q]);
 
   function updateSearch(updates: Partial<PropertySearch>) {
     setOpenDropdown(null);
@@ -346,12 +364,14 @@ function PropertiesPage() {
     activeState !== "all" ||
     activeCity !== "all" ||
     activeArea !== "all" ||
+    activeStatus !== "all" ||
     activeOrder !== "0" ||
     search.q
   );
 
   const selectedTypeLabel = TYPES_OPTIONS.find((o) => o.value === activeType)?.label || "Types";
   const selectedCategoryLabel = CATEGORIES_OPTIONS.find((o) => o.value === activeCategory)?.label || "Categories";
+  const selectedStatusLabel = STATUS_OPTIONS.find((o) => o.value === activeStatus)?.label || "Status";
   const selectedStateLabel = STATES_OPTIONS.find((o) => o.value === activeState)?.label || "States";
   const selectedCityLabel = CITIES_OPTIONS.find((o) => o.value === activeCity)?.label || "Cities";
   const selectedAreaLabel = AREAS_OPTIONS.find((o) => o.value === activeArea)?.label || "Areas";
@@ -456,6 +476,43 @@ function PropertiesPage() {
                         }`}
                         onClick={() => {
                           updateSearch({ category: item.value === "all" ? undefined : item.value });
+                          setOpenDropdown(null);
+                        }}
+                      >
+                        {item.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Status Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-expanded={openDropdown === "status"}
+                  onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
+                  className={`inline-flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    openDropdown === "status" || activeStatus !== "all"
+                      ? "border-[#C5A880] bg-[#FAF8F5] text-[#0F172A] shadow-xs"
+                      : "border-[#EAE6DF] bg-white text-[#1E293B] hover:border-[#C5A880]"
+                  }`}
+                >
+                  <span>{selectedStatusLabel}</span>
+                  <ChevronDown className={`size-3.5 text-slate-400 transition-transform ${openDropdown === "status" ? "rotate-180 text-[#B38B59]" : ""}`} />
+                </button>
+                {openDropdown === "status" && (
+                  <ul className="absolute left-0 top-full mt-1.5 min-w-[160px] rounded-xl bg-white border border-[#EAE6DF] shadow-xl py-1 z-50 animate-in fade-in">
+                    {STATUS_OPTIONS.map((item) => (
+                      <li
+                        key={item.value}
+                        className={`px-3.5 py-2 text-xs cursor-pointer transition-colors ${
+                          activeStatus === item.value
+                            ? "bg-[#FAF8F5] text-[#B38B59] font-bold"
+                            : "text-[#1E293B] hover:bg-[#FAF8F5] hover:text-[#0F172A]"
+                        }`}
+                        onClick={() => {
+                          updateSearch({ status: item.value === "all" ? undefined : item.value });
                           setOpenDropdown(null);
                         }}
                       >

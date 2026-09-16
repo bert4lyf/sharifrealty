@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BlogPost, MediaAsset, OpenHouseEvent, MlsConfig, MlsSyncLog } from "./types";
+export type { MediaAsset };
 import {
   SEED_PROPERTIES_DATA,
   SEED_BLOG_POSTS_DATA,
@@ -89,6 +90,7 @@ export type AdminPropertyPost = {
   longitude?: number | undefined;
   image: string;
   images: string[];
+  galleryImages?: string[] | undefined;
   features: string[];
   isFeatured: boolean;
   virtualTourUrl?: string | undefined;
@@ -304,70 +306,6 @@ export const SEED_USERS: AppUser[] = [
     favorites: [],
     inquiries: [],
   },
-  {
-    id: "u-3",
-    name: "Developer Admin",
-    email: "admin@gmail.com",
-    phone: "(203) 555-0100",
-    role: "Admin",
-    status: "Active",
-    dateJoined: "2024-01-01",
-    favorites: [],
-    inquiries: [],
-  },
-  {
-    id: "u-4",
-    name: "Sarah Jenkins",
-    email: "sarah.j@sharifrealty.com",
-    phone: "(203) 802-8101",
-    role: "Agent",
-    status: "Active",
-    dateJoined: "2024-03-10",
-    favorites: ["p-1"],
-    inquiries: [],
-  },
-  {
-    id: "u-5",
-    name: "Michael Chang",
-    email: "mchang@example.com",
-    phone: "(203) 555-4421",
-    role: "Client",
-    status: "Active",
-    dateJoined: "2026-01-20",
-    favorites: ["p-1", "p-3"],
-    inquiries: [
-      {
-        id: "inq-1",
-        propertyId: "p-1",
-        propertyTitle: "Waterbury Estate 3125 N Main St",
-        date: "2026-08-20",
-        type: "tour",
-        status: "Confirmed",
-        message: "Looking to schedule an in-person showing for this weekend.",
-      },
-    ],
-  },
-  {
-    id: "u-6",
-    name: "Eleanor Vance",
-    email: "eleanor.v@example.com",
-    phone: "(203) 555-8912",
-    role: "Client",
-    status: "Active",
-    dateJoined: "2026-02-14",
-    favorites: ["p-2"],
-    inquiries: [
-      {
-        id: "inq-2",
-        propertyId: "p-2",
-        propertyTitle: "Berlin Off-Market Condo Unit 20",
-        date: "2026-08-22",
-        type: "inquiry",
-        status: "In Progress",
-        message: "Interested in the HOA fees and recent unit upgrades.",
-      },
-    ],
-  },
 ];
 
 type AdminContextValue = {
@@ -411,6 +349,7 @@ type AdminContextValue = {
   createBlogPost: (draft: Partial<BlogPost>) => BlogPost;
   updateBlogPost: (id: string, draft: Partial<BlogPost>) => void;
   deleteBlogPost: (id: string) => void;
+  recordBlogPostView: (slugOrId: string) => void;
   // Media
   mediaAssets: MediaAsset[];
   addMediaAsset: (asset: Omit<MediaAsset, "id" | "uploadedAt">) => MediaAsset;
@@ -462,17 +401,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [siteOptions, setSiteOptions] = useState<SiteOptionsData>(SEED_SITE_OPTIONS);
   const [leads, setLeads] = useState<CrmLead[]>(SEED_CRM_LEADS);
 
-  const SEED_VERSION_KEY = "sharif.admin.seed_version_v8";
+  const SEED_VERSION_KEY = "sharif.admin.seed_version_v10";
+  const DEMO_USER_EMAILS = [
+    "admin@gmail.com",
+    "sarah.j@sharifrealty.com",
+    "mchang@example.com",
+    "eleanor.v@example.com",
+  ];
 
   useEffect(() => {
     const version = typeof window !== "undefined" ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
-    if (version !== "v8") {
+    if (version !== "v10") {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(POSTS_KEY);
         window.localStorage.removeItem(BLOG_KEY);
         window.localStorage.removeItem(USERS_KEY);
         window.localStorage.removeItem(MEDIA_KEY);
-        window.localStorage.setItem(SEED_VERSION_KEY, "v8");
+        window.localStorage.setItem(SEED_VERSION_KEY, "v10");
       }
       setPosts(SEED_PROPERTIES);
       setBlogPosts(SEED_BLOG_POSTS);
@@ -481,7 +426,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     } else {
       setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
       setBlogPosts(readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS));
-      setUsers(readJson<AppUser[]>(USERS_KEY, SEED_USERS));
+      const loadedUsers = readJson<AppUser[]>(USERS_KEY, SEED_USERS);
+      const cleanUsers = loadedUsers.filter(
+        (u) => !DEMO_USER_EMAILS.includes(u.email.toLowerCase()),
+      );
+      setUsers(cleanUsers);
     }
     const sessionUser = readJson<AppUser | null>(AUTH_KEY, null);
     setUser(sessionUser);
@@ -508,10 +457,42 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const persist = useCallback((key: string, data: unknown) => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(data));
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(key, JSON.stringify(data));
+        window.dispatchEvent(
+          new CustomEvent("sharif_admin_store_sync", { detail: { key, data } }),
+        );
+      }
     } catch {
       /* ignore */
     }
+  }, []);
+
+  // Real-time listener for site-wide instant sync
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleSync = (e: any) => {
+      const key = e?.key || e?.detail?.key;
+      if (!key) return;
+      if (key === POSTS_KEY) setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
+      if (key === BLOG_KEY) setBlogPosts(readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS));
+      if (key === USERS_KEY) {
+        const loaded = readJson<AppUser[]>(USERS_KEY, SEED_USERS);
+        setUsers(loaded.filter((u) => !DEMO_USER_EMAILS.includes(u.email.toLowerCase())));
+      }
+      if (key === MEDIA_KEY) setMediaAssets(readJson<MediaAsset[]>(MEDIA_KEY, SEED_MEDIA_ASSETS));
+      if (key === LEADS_KEY) setLeads(readJson<CrmLead[]>(LEADS_KEY, SEED_CRM_LEADS));
+      if (key === SETTINGS_KEY)
+        setSiteOptions(readJson<SiteOptionsData>(SETTINGS_KEY, SEED_SITE_OPTIONS));
+    };
+
+    window.addEventListener("storage", handleSync);
+    window.addEventListener("sharif_admin_store_sync", handleSync);
+    return () => {
+      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("sharif_admin_store_sync", handleSync);
+    };
   }, []);
 
   const signIn = useCallback((email: string, password: string) => {
@@ -904,6 +885,34 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [blogPosts, persist]
   );
 
+  const recordBlogPostView = useCallback(
+    (slugOrId: string) => {
+      setBlogPosts((prev) => {
+        let changed = false;
+        const updated = prev.map((b) => {
+          if (b.id === slugOrId || b.slug === slugOrId) {
+            changed = true;
+            const current =
+              typeof b.views === "number"
+                ? b.views
+                : parseInt(String(b.views || "0").replace(/[^0-9]/g, ""), 10) || 0;
+            return {
+              ...b,
+              views: current + 1,
+            };
+          }
+          return b;
+        });
+        if (changed) {
+          persist(BLOG_KEY, updated);
+          return updated;
+        }
+        return prev;
+      });
+    },
+    [persist]
+  );
+
   // Media handlers
   const addMediaAsset = useCallback(
     (asset: Omit<MediaAsset, "id" | "uploadedAt">) => {
@@ -1067,6 +1076,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       createBlogPost,
       updateBlogPost,
       deleteBlogPost,
+      recordBlogPostView,
       mediaAssets,
       addMediaAsset,
       deleteMediaAsset,
@@ -1109,6 +1119,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       createBlogPost,
       updateBlogPost,
       deleteBlogPost,
+      recordBlogPostView,
       mediaAssets,
       addMediaAsset,
       deleteMediaAsset,
@@ -1126,6 +1137,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       updateLeadStatus,
       assignLeadAgent,
       addLead,
+      deleteLead,
     ]
   );
 

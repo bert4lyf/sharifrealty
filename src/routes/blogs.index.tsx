@@ -110,10 +110,13 @@ export function BlogPage() {
                   <div>
                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                       <img
-                        src={DEFAULT_BLOG_IMAGE}
+                        src={post.coverImage || DEFAULT_BLOG_IMAGE}
                         alt={post.title}
                         className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
+                        }}
                       />
                       <span className="absolute top-3 left-3 rounded-full bg-[#0F172A]/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm border border-white/15">
                         {post.category || "Market Report"}

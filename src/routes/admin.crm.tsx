@@ -14,6 +14,10 @@ import {
   ExternalLink,
   MessageSquare,
   UserPlus,
+  Eye,
+  Building2,
+  Calendar,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAdmin, type CrmLead } from "@/lib/admin-store";
@@ -38,6 +42,9 @@ export default function AdminCrmPage() {
   const [newProperty, setNewProperty] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newStatus, setNewStatus] = useState<CrmLead["status"]>("New");
+
+  // Selected Inquiry for Mini Window Modal
+  const [activeInquiry, setActiveInquiry] = useState<CrmLead | null>(null);
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
@@ -256,11 +263,13 @@ export default function AdminCrmPage() {
                   return (
                     <tr
                       key={lead.id}
-                      className={`hover:bg-[#F8FAFC] transition-colors ${
+                      onClick={() => setActiveInquiry(lead)}
+                      title="Click to view full inquiry details"
+                      className={`hover:bg-[#F8FAFC] transition-colors cursor-pointer group ${
                         isSelected ? "bg-red-50/40" : ""
                       }`}
                     >
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -271,20 +280,22 @@ export default function AdminCrmPage() {
                                 : [...prev, lead.id],
                             );
                           }}
-                          className="size-3.5 text-[#DC2626] rounded border-slate-300"
+                          className="size-3.5 text-[#DC2626] rounded border-slate-300 cursor-pointer"
                         />
                       </td>
 
                       {/* Client Name + ID */}
                       <td className="p-3">
-                        <div className="font-bold text-slate-900">{lead.name}</div>
+                        <div className="font-bold text-slate-900 group-hover:text-[#DC2626] transition-colors flex items-center gap-1.5">
+                          <span>{lead.name}</span>
+                        </div>
                         <div className="text-[10px] font-mono text-slate-400">
                           {lead.id.startsWith("LD-") ? lead.id : `LD-${lead.id}`}
                         </div>
                       </td>
 
                       {/* Contact Info */}
-                      <td className="p-3">
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <div className="space-y-1">
                           {lead.phone && (
                             <div className="flex items-center gap-1.5 text-slate-700">
@@ -335,7 +346,7 @@ export default function AdminCrmPage() {
                       </td>
 
                       {/* Status */}
-                      <td className="p-3">
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => handleCycleStatus(lead.id, lead.status)}
@@ -358,8 +369,16 @@ export default function AdminCrmPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setActiveInquiry(lead)}
+                            title="Open full inquiry window"
+                            className="p-1.5 bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 transition-colors"
+                          >
+                            <Eye className="size-3.5" />
+                          </button>
                           {lead.phone && (
                             <a
                               href={`tel:${lead.phone}`}
@@ -514,6 +533,182 @@ export default function AdminCrmPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Inquiry Mini Window Modal */}
+      {activeInquiry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setActiveInquiry(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                    {activeInquiry.name}
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    {activeInquiry.id.startsWith("LD-") ? activeInquiry.id : `LD-${activeInquiry.id}`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                  <Calendar className="size-3.5 text-slate-400" />
+                  <span>Received {activeInquiry.date || "Recently"}</span>
+                  <span>•</span>
+                  <span>Assigned: {activeInquiry.agent || "Majeed Sharif"}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveInquiry(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {/* Property / Interest Topic */}
+            <div className="p-3.5 rounded-xl bg-[#FAF8F5] dark:bg-slate-800/60 border border-[#EAE6DF] dark:border-slate-700">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#B38B59] block mb-1">
+                Property / Showing Interest
+              </span>
+              <div className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Building2 className="size-4 text-[#C5A880] shrink-0" />
+                <span>{activeInquiry.property || "General Showing / Consultation"}</span>
+              </div>
+            </div>
+
+            {/* Full Inquiry Message */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <MessageSquare className="size-3.5 text-[#C5A880]" /> Full Client Message &amp; Notes
+                </span>
+                {activeInquiry.message && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(activeInquiry.message || "");
+                      toast.success("Message copied to clipboard!");
+                    }}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-[#DC2626] flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="size-3" /> Copy
+                  </button>
+                )}
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto">
+                {activeInquiry.message ? (
+                  activeInquiry.message
+                ) : (
+                  <em className="text-slate-400">No message body provided with this inquiry.</em>
+                )}
+              </div>
+            </div>
+
+            {/* Contact Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Phone</span>
+                  <a
+                    href={`tel:${activeInquiry.phone}`}
+                    className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-[#DC2626] hover:underline"
+                  >
+                    {activeInquiry.phone || "Not provided"}
+                  </a>
+                </div>
+                {activeInquiry.phone && (
+                  <a
+                    href={`tel:${activeInquiry.phone}`}
+                    className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition-colors"
+                    title="Call Client"
+                  >
+                    <Phone className="size-4" />
+                  </a>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between">
+                <div className="space-y-0.5 truncate mr-2">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Email Address</span>
+                  <a
+                    href={`mailto:${activeInquiry.email}`}
+                    className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-[#DC2626] hover:underline truncate block"
+                  >
+                    {activeInquiry.email}
+                  </a>
+                </div>
+                <a
+                  href={`mailto:${activeInquiry.email}`}
+                  className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors shrink-0"
+                  title="Email Client"
+                >
+                  <Mail className="size-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Status Management Bar */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Status:</span>
+                {(["New", "In Progress", "In Contract", "Closed"] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => {
+                      updateLeadStatus(activeInquiry.id, st);
+                      setActiveInquiry((prev) => prev ? { ...prev, status: st } : null);
+                      toast.success(`Inquiry status set to "${st}".`);
+                    }}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                      activeInquiry.status === st
+                        ? st === "New"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : st === "In Progress" || st === "In Contract"
+                          ? "bg-amber-600 text-white shadow-sm"
+                          : "bg-slate-700 text-white shadow-sm"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`Delete inquiry from "${activeInquiry.name}"?`)) {
+                      deleteLead(activeInquiry.id);
+                      setActiveInquiry(null);
+                      toast.success("Inquiry deleted.");
+                    }
+                  }}
+                  className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                  title="Delete inquiry"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveInquiry(null)}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

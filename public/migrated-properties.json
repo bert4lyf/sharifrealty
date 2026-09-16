@@ -229,5 +229,107 @@
     ],
     "is_featured": true,
     "is_archived": false
+  },
+  {
+    "slug": "another-property-sold-3-bedrooms-1-5-bath-waterbury-ct",
+    "title": "Another Property Sold - 3 Bedrooms 1.5 Bath Waterbury CT",
+    "description": "Another property successfully sold by Sharif Realty Group! This charming 3-bedroom, 1.5-bathroom single family home in Waterbury, Connecticut features classic Dutch Gambrel architecture, an oversized detached 2-car garage, private paved driveway, welcoming covered front porch, and manicured grounds with mature privacy hedges. Sharif Realty Group is proud to deliver another smooth transaction and successful closing for our clients.",
+    "category": "Houses",
+    "price": 0,
+    "status": "sold",
+    "listing_type": "buy",
+    "address": "Waterbury",
+    "city": "Waterbury",
+    "state": "Connecticut",
+    "zip": "06708",
+    "latitude": 41.562,
+    "longitude": -73.042,
+    "beds": 3,
+    "baths": 1.5,
+    "sqft": 1850,
+    "year_built": 1945,
+    "features": [
+      "3 Bedrooms & 1.5 Bathrooms",
+      "Classic Dutch Gambrel Architecture",
+      "Detached 2-Car Garage with Workshop Space",
+      "Private Paved Driveway & Parking",
+      "Covered Front Entry Porch with Paver Walkway",
+      "Manicured Lawn & Mature Evergreen Privacy Landscaping",
+      "Waterbury, CT Established Residential Setting",
+      "Successfully Sold by Sharif Realty Group"
+    ],
+    "images": [
+      "/wp-content/uploads/waterbury-3bed-1halfbath-sold.jpg"
+    ],
+    "is_featured": true,
+    "is_archived": false
+  },
+  {
+    "slug": "commercial-property-350-s-main-st-cheshire-ct-sold",
+    "title": "Commercial Property 350 S Main St Cheshire CT",
+    "description": "Sharif Realty Group proudly represented the buyer on the acquisition of this premier commercial property located at 350 S Main St, Cheshire, CT. Prominently positioned along Route 10 (South Main Street) in Cheshire's vibrant commercial corridor, this two-story multi-tenant professional and medical office building features high road visibility, dedicated curbside and monument tenant signage, expansive on-site paved parking, modern brick and glass architecture, and flexible commercial suites. Another landmark commercial transaction successfully closed by Sharif Realty Group!",
+    "category": "Commercial",
+    "price": 0,
+    "status": "sold",
+    "listing_type": "commercial",
+    "address": "350 S Main St",
+    "city": "Cheshire",
+    "state": "Connecticut",
+    "zip": "06410",
+    "latitude": 41.4925,
+    "longitude": -72.9065,
+    "beds": 0,
+    "baths": 4,
+    "sqft": 9800,
+    "year_built": 1988,
+    "features": [
+      "Sharif Realty Group Represented the Buyer",
+      "350 S Main St (Route 10) Prime Cheshire Commercial Corridor",
+      "Multi-Tenant Professional & Medical Office Building",
+      "Modern Architectural Brick & Glass Atrium Entrance",
+      "Large On-Site Paved Parking Lot for Tenants & Clients",
+      "Curbside Multi-Tenant Directory Signage & Mailbox Hub",
+      "High Visibility & Heavy Daily Traffic Counts",
+      "Successfully Closed & Sold by Sharif Realty Group"
+    ],
+    "images": [
+      "/wp-content/uploads/350-south-main-cheshire-sold.jpg"
+    ],
+    "is_featured": true,
+    "is_archived": false
+  },
+  {
+    "slug": "commercial-property-550-north-main-st-southington-ct-sold",
+    "title": "Commercial Property 550 North Main St Southington CT",
+    "description": "Sharif Realty Group proudly represented the buyers on this high-performing commercial shopping and professional plaza located at 550 North Main St, Southington, Connecticut. Positioned in a vibrant commercial corridor along North Main Street (Route 10), this multi-unit commercial center features high-visibility street frontage, active retail and salon storefronts, restaurant dining, second-level executive office suites, generous customer parking, and classic New England architecture with roof dormers. Congratulations to our buyer clients on this strategic commercial investment!",
+    "category": "Commercial",
+    "price": 0,
+    "status": "sold",
+    "listing_type": "commercial",
+    "address": "550 North Main St",
+    "city": "Southington",
+    "state": "Connecticut",
+    "zip": "06489",
+    "latitude": 41.611,
+    "longitude": -72.876,
+    "beds": 0,
+    "baths": 6,
+    "sqft": 14500,
+    "year_built": 1995,
+    "features": [
+      "Sharif Realty Group Represented the Buyers",
+      "550 North Main St High-Traffic Southington Location",
+      "Multi-Tenant Commercial & Retail Shopping Plaza",
+      "Established Storefronts & Professional Office Suites",
+      "Expansive Paved Parking Lot for Customers & Tenants",
+      "Distinctive Colonial Architecture with Dormers",
+      "Prime Investment & Commercial Asset",
+      "Successfully Closed & Sold by Sharif Realty Group"
+    ],
+    "images": [
+      "/wp-content/uploads/550-north-main-southington-sold.jpg"
+    ],
+    "is_featured": true,
+    "is_archived": false
   }
 ]

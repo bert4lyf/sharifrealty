@@ -50,6 +50,13 @@ export function PropertyEditor({ property, onSave, onCancel, open, onClose }: Pr
   const [slug, setSlug] = useState(property?.slug ?? "");
   const [description, setDescription] = useState(property?.description ?? "");
   const [price, setPrice] = useState(property?.price ?? 750000);
+  const [isCallOnPrice, setIsCallOnPrice] = useState<boolean>(
+    Boolean(
+      property?.priceLabel?.toLowerCase().includes("call") ||
+      property?.priceLabel === "Price on Call" ||
+      (property && property.price === 0 && property.priceLabel)
+    )
+  );
   const [status, setStatus] = useState<AdminPropertyPost["status"]>(
     property?.status ?? "Published",
   );
@@ -177,7 +184,12 @@ export function PropertyEditor({ property, onSave, onCancel, open, onClose }: Pr
       title,
       slug: generatedSlug,
       description,
-      price: Number(price) || 0,
+      price: isCallOnPrice ? 0 : Number(price) || 0,
+      priceLabel: isCallOnPrice
+        ? "Price on Call"
+        : propertyStatus === "sold"
+        ? (property?.priceLabel || "Sold")
+        : undefined,
       status,
       listingType,
       propertyStatus,
@@ -275,18 +287,39 @@ export function PropertyEditor({ property, onSave, onCancel, open, onClose }: Pr
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="prop-price" className="text-xs font-semibold text-slate-700">
-              Listing Price ($) *
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="prop-price" className="text-xs font-semibold text-slate-700">
+                Listing Price ($) *
+              </Label>
+              {isCallOnPrice && (
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                  Price on Call Active
+                </span>
+              )}
+            </div>
             <Input
               id="prop-price"
               type="number"
-              value={price}
+              value={isCallOnPrice ? "" : price}
               onChange={(e) => setPrice(Number(e.target.value))}
-              placeholder="750000"
-              required
-              className="text-xs font-mono font-bold text-[#0F172A] border-[#EAE6DF] bg-[#FAF8F5] rounded-xl focus:border-[#C5A880]"
+              placeholder={isCallOnPrice ? "Price on Call" : "750000"}
+              disabled={isCallOnPrice}
+              required={!isCallOnPrice}
+              className={`text-xs font-mono font-bold text-[#0F172A] border-[#EAE6DF] rounded-xl focus:border-[#C5A880] ${
+                isCallOnPrice ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-[#FAF8F5]"
+              }`}
             />
+            <label className="flex items-center gap-2 cursor-pointer pt-1 select-none">
+              <input
+                type="checkbox"
+                checked={isCallOnPrice}
+                onChange={(e) => setIsCallOnPrice(e.target.checked)}
+                className="size-4 text-[#C5A880] rounded border-slate-300 focus:ring-[#C5A880] cursor-pointer"
+              />
+              <span className="text-xs font-medium text-slate-700">
+                <strong>Call on price</strong> (Hide exact numeric price &amp; display "Price on Call")
+              </span>
+            </label>
           </div>
 
           <div className="space-y-1.5">

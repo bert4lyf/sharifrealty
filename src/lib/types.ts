@@ -54,7 +54,7 @@ export type BlogPost = {
   readTime: string;
   status: "Published" | "Draft";
   seoScore?: number | undefined;
-  views?: string | undefined;
+  views?: number | string | undefined;
   comments: number;
 };
 

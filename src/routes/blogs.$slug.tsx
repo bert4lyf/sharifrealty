@@ -91,16 +91,37 @@ export function SingleBlogPage() {
   const nextPost =
     currentIndex < blogPosts.length - 1 ? blogPosts[currentIndex + 1] : blogPosts[0];
 
-  // Gallery images array (fallback to cover image if no gallery)
+  // Real-time blog traffic tracking: Increment view count on visit
+  useEffect(() => {
+    const postKey = post.slug || post.id;
+    if (!postKey) return;
+    const sessionKey = `sharif_blog_view_${postKey}`;
+    if (typeof window !== "undefined" && !sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, "1");
+      if (admin && typeof admin.recordBlogPostView === "function") {
+        admin.recordBlogPostView(postKey);
+      }
+    }
+  }, [post.slug, post.id, admin]);
+
+  // Gallery images array: Featured Cover Image takes primary precedence
   const images = useMemo(() => {
+    const list: string[] = [];
+    if (post.coverImage && typeof post.coverImage === "string" && post.coverImage.trim()) {
+      list.push(post.coverImage);
+    }
     if (post.galleryImages && post.galleryImages.length > 0) {
-      return post.galleryImages;
+      for (const img of post.galleryImages) {
+        if (img && typeof img === "string" && !list.includes(img)) {
+          list.push(img);
+        }
+      }
     }
-    if (post.coverImage) {
-      return [post.coverImage];
+    if (list.length === 0) {
+      list.push("/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg");
     }
-    return ["/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg"];
-  }, [post]);
+    return list;
+  }, [post.coverImage, post.galleryImages]);
 
   const activeImage = images[activeImageIndex] || images[0];
 
@@ -522,11 +543,31 @@ export function SingleBlogPage() {
               {/* Main Article Body */}
               <div className="prose prose-slate dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 leading-relaxed text-sm sm:text-base space-y-4">
                 {post.content ? (
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: post.content,
-                    }}
-                  />
+                  (() => {
+                    const hasHtmlTags =
+                      /<\/?(p|div|h[1-6]|ul|ol|li|blockquote|br|hr|table|strong|em|span)\b/i.test(
+                        post.content,
+                      );
+                    if (hasHtmlTags) {
+                      return (
+                        <div
+                          className="whitespace-pre-line leading-relaxed space-y-4 font-sans"
+                          dangerouslySetInnerHTML={{ __html: post.content }}
+                        />
+                      );
+                    }
+                    // Plain text arrangement entered in admin: Preserve exact paragraph spacing & newlines
+                    const paragraphs = post.content.split(/\n\n+/);
+                    return (
+                      <div className="space-y-4 font-sans text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line text-sm sm:text-base">
+                        {paragraphs.map((p, idx) => (
+                          <p key={idx} className="leading-relaxed">
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <p>
                     Sharif Realty Group provides private client advisory and off-market representation

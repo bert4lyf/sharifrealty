@@ -22,6 +22,21 @@ import type { MediaAsset } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/media")({
   component: AdminMediaPage,
+  errorComponent: ({ reset }) => (
+    <div className="bg-white p-8 border border-slate-200 text-center space-y-3 m-4">
+      <h2 className="text-base font-bold text-slate-900">Media Library</h2>
+      <p className="text-xs text-slate-500">
+        Media catalog updated. Click below to refresh your asset pool.
+      </p>
+      <button
+        type="button"
+        onClick={() => reset()}
+        className="px-4 py-2 bg-[#DC2626] text-white text-xs font-bold hover:bg-[#B91C1C] transition-colors"
+      >
+        Refresh Media Library
+      </button>
+    </div>
+  ),
 });
 
 export default function AdminMediaPage() {
@@ -39,32 +54,45 @@ export default function AdminMediaPage() {
 
   // Combine media assets from store + property photo galleries
   const allMediaPool: MediaAsset[] = useMemo(() => {
-    const propertyImages = posts.flatMap((p) =>
-      (p.images || []).map((img, idx) => {
-        const filename = img.split("/").pop() || `image-${idx + 1}.png`;
-        const ext = filename.split(".").pop()?.toLowerCase() || "jpg";
-        return {
-          id: `prop-img-${p.id}-${idx}`,
-          url: img,
-          title: `${p.title} (${idx + 1})`,
-          filename,
-          fileSize: "480 KB",
-          dimensions: "1920 x 1080",
-          type: "image" as const,
-          folder: "properties" as const,
-          uploadedAt: p.date || "2026-01-25",
-        };
-      }),
+    const propertyImages = (posts || []).flatMap((p) =>
+      (p?.images || [])
+        .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+        .map((img, idx) => {
+          const filename = img.split("/").pop() || `property-photo-${idx + 1}.jpg`;
+          return {
+            id: `prop-img-${p?.id || idx}-${idx}`,
+            url: img,
+            title: `${p?.title || "Property"} (${idx + 1})`,
+            filename,
+            fileSize: "480 KB",
+            dimensions: "1920 x 1080",
+            type: "image" as const,
+            folder: "properties" as const,
+            uploadedAt: p?.date || "2026-01-25",
+          };
+        }),
     );
 
-    // Dedup by URL
+    // Dedup by URL and ensure all fields are valid strings
     const seen = new Set<string>();
     const combined: MediaAsset[] = [];
 
-    for (const item of [...mediaAssets, ...propertyImages]) {
+    for (const item of [...(mediaAssets || []), ...propertyImages]) {
+      if (!item || !item.url) continue;
       if (!seen.has(item.url)) {
         seen.add(item.url);
-        combined.push(item);
+        const filename = item.filename || item.title || item.url.split("/").pop() || "media.jpg";
+        combined.push({
+          id: item.id || `m-${combined.length}`,
+          url: item.url,
+          title: item.title || filename,
+          filename,
+          fileSize: item.fileSize || "480 KB",
+          dimensions: item.dimensions || "1920 x 1080",
+          type: item.type || "image",
+          folder: item.folder || "properties",
+          uploadedAt: item.uploadedAt || "2026-01-25",
+        });
       }
     }
 
@@ -75,30 +103,45 @@ export default function AdminMediaPage() {
   const folderCounts = useMemo(() => {
     return {
       all: allMediaPool.length,
-      properties: allMediaPool.filter(
-        (m) => m.folder === "properties" || m.filename.includes("png") || m.filename.includes("jpg"),
-      ).length,
-      blog: allMediaPool.filter(
-        (m) =>
-          m.folder === "blog" ||
-          m.filename.includes("image-2") ||
-          m.filename.includes("florida") ||
-          m.filename.includes("scaled"),
-      ).length,
-      marketing: allMediaPool.filter(
-        (m) =>
-          m.folder === "marketing" ||
-          m.filename.includes("LOGO") ||
-          m.filename.includes("hero") ||
-          m.filename.includes("waves"),
-      ).length,
-      agents: allMediaPool.filter(
-        (m) =>
-          m.folder === "agents" ||
-          m.filename.includes("Sharif") ||
-          m.filename.includes("Client") ||
-          m.filename.includes("woman"),
-      ).length,
+      properties: allMediaPool.filter((m) => {
+        const fn = (m?.filename || "").toLowerCase();
+        return (
+          m?.folder === "properties" ||
+          fn.includes("png") ||
+          fn.includes("jpg") ||
+          fn.includes("thendara") ||
+          fn.includes("waterbury") ||
+          fn.includes("cheshire") ||
+          fn.includes("southington")
+        );
+      }).length,
+      blog: allMediaPool.filter((m) => {
+        const fn = (m?.filename || "").toLowerCase();
+        return (
+          m?.folder === "blog" ||
+          fn.includes("image-2") ||
+          fn.includes("florida") ||
+          fn.includes("scaled")
+        );
+      }).length,
+      marketing: allMediaPool.filter((m) => {
+        const fn = (m?.filename || "").toLowerCase();
+        return (
+          m?.folder === "marketing" ||
+          fn.includes("logo") ||
+          fn.includes("hero") ||
+          fn.includes("waves")
+        );
+      }).length,
+      agents: allMediaPool.filter((m) => {
+        const fn = (m?.filename || "").toLowerCase();
+        return (
+          m?.folder === "agents" ||
+          fn.includes("sharif") ||
+          fn.includes("client") ||
+          fn.includes("woman")
+        );
+      }).length,
     };
   }, [allMediaPool]);
 
@@ -106,23 +149,31 @@ export default function AdminMediaPage() {
   const filteredMedia = useMemo(() => {
     return allMediaPool
       .filter((item) => {
+        if (!item) return false;
+        const fname = (item.filename || "").toLowerCase();
+        const title = (item.title || "").toLowerCase();
+
         // Folder filter
         if (selectedFolder !== "all") {
           if (selectedFolder === "properties" && item.folder !== "properties") {
             const isLikelyProp =
-              item.filename.includes("1-") ||
-              item.filename.includes("2-") ||
-              item.filename.includes("16-") ||
-              item.filename.includes("IMG_");
+              fname.includes("1-") ||
+              fname.includes("2-") ||
+              fname.includes("16-") ||
+              fname.includes("img_") ||
+              fname.includes("thendara") ||
+              fname.includes("waterbury") ||
+              fname.includes("cheshire") ||
+              fname.includes("southington");
             if (!isLikelyProp) return false;
           } else if (selectedFolder === "blog" && item.folder !== "blog") {
-            const isLikelyBlog = item.filename.includes("image-2") || item.filename.includes("florida");
+            const isLikelyBlog = fname.includes("image-2") || fname.includes("florida");
             if (!isLikelyBlog) return false;
           } else if (selectedFolder === "marketing" && item.folder !== "marketing") {
-            const isLikelyMktg = item.filename.includes("LOGO") || item.filename.includes("hero");
+            const isLikelyMktg = fname.includes("logo") || fname.includes("hero");
             if (!isLikelyMktg) return false;
           } else if (selectedFolder === "agents" && item.folder !== "agents") {
-            const isLikelyAgent = item.filename.includes("Sharif") || item.filename.includes("Client");
+            const isLikelyAgent = fname.includes("sharif") || fname.includes("client");
             if (!isLikelyAgent) return false;
           }
         }
@@ -133,15 +184,19 @@ export default function AdminMediaPage() {
         // Search query
         if (searchQuery.trim()) {
           const term = searchQuery.toLowerCase();
-          return item.title.toLowerCase().includes(term) || item.filename.toLowerCase().includes(term);
+          return title.includes(term) || fname.includes(term);
         }
 
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === "name") return a.filename.localeCompare(b.filename);
-        if (sortBy === "oldest") return a.uploadedAt.localeCompare(b.uploadedAt);
-        return b.uploadedAt.localeCompare(a.uploadedAt);
+        const aName = a?.filename || a?.title || "";
+        const bName = b?.filename || b?.title || "";
+        const aDate = a?.uploadedAt || "";
+        const bDate = b?.uploadedAt || "";
+        if (sortBy === "name") return aName.localeCompare(bName);
+        if (sortBy === "oldest") return aDate.localeCompare(bDate);
+        return bDate.localeCompare(aDate);
       });
   }, [allMediaPool, selectedFolder, typeFilter, searchQuery, sortBy]);
 
@@ -395,7 +450,8 @@ export default function AdminMediaPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
               {filteredMedia.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
-                const ext = item.filename.split(".").pop()?.toUpperCase() || "JPG";
+                const filename = item?.filename || item?.title || "media.jpg";
+                const ext = filename.split(".").pop()?.toUpperCase() || "JPG";
 
                 return (
                   <div
@@ -414,7 +470,7 @@ export default function AdminMediaPage() {
                       ) : (
                         <img
                           src={item.url}
-                          alt={item.title}
+                          alt={item.title || filename}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/wp-content/uploads/image-16.png";
@@ -441,8 +497,8 @@ export default function AdminMediaPage() {
 
                     {/* Meta info */}
                     <div className="p-2 text-left">
-                      <div className="font-bold text-[11px] text-slate-900 truncate" title={item.filename}>
-                        {item.filename}
+                      <div className="font-bold text-[11px] text-slate-900 truncate" title={filename}>
+                        {filename}
                       </div>
                       <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-0.5">
                         <span>{item.dimensions || "1920x1080"}</span>
@@ -457,6 +513,7 @@ export default function AdminMediaPage() {
             <div className="bg-white border border-[#E2E8F0] shadow-sm divide-y divide-[#E2E8F0] text-xs">
               {filteredMedia.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
+                const filename = item?.filename || item?.title || "media.jpg";
                 return (
                   <div
                     key={item.id}
@@ -481,9 +538,9 @@ export default function AdminMediaPage() {
                         }}
                       />
                       <div>
-                        <div className="font-bold text-slate-900">{item.filename}</div>
+                        <div className="font-bold text-slate-900">{filename}</div>
                         <div className="text-[10px] font-mono text-slate-400">
-                          {item.dimensions} · {item.fileSize}
+                          {item.dimensions || "1920x1080"} · {item.fileSize || "420 KB"}
                         </div>
                       </div>
                     </div>
@@ -514,9 +571,9 @@ export default function AdminMediaPage() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm(`Are you sure you want to delete media asset "${item.filename}"?`)) {
+                          if (confirm(`Are you sure you want to delete media asset "${filename}"?`)) {
                             deleteMediaAsset(item.id);
-                            toast.success(`Deleted "${item.filename}".`);
+                            toast.success(`Deleted "${filename}".`);
                           }
                         }}
                         className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"

@@ -241,11 +241,114 @@ const FEATURED_PROPERTIES_DATA = [
     image: OFFICIAL_MEDIA.thendara,
     agentName: "Majeed Sharif",
   },
+  {
+    id: "32120",
+    title: "Another Property Sold - 3 Bedrooms 1.5 Bath",
+    slug: "another-property-sold-3-bedrooms-1-5-bath-waterbury-ct",
+    address: "Waterbury",
+    city: "Waterbury",
+    state: "CT",
+    category: "Residential",
+    tag: "SOLD",
+    rooms: 3,
+    idLabel: "32120",
+    price: "SOLD",
+    image: "/wp-content/uploads/waterbury-3bed-1halfbath-sold.jpg",
+    agentName: "Majeed Sharif",
+  },
+  {
+    id: "32121",
+    title: "Commercial Property 350 S Main St Cheshire CT",
+    slug: "commercial-property-350-s-main-st-cheshire-ct-sold",
+    address: "350 S Main St",
+    city: "Cheshire",
+    state: "CT",
+    category: "Commercial",
+    tag: "SOLD · BUYER REP",
+    rooms: 0,
+    idLabel: "32121",
+    price: "SOLD",
+    image: "/wp-content/uploads/350-south-main-cheshire-sold.jpg",
+    agentName: "Sharif Realty Group",
+  },
+  {
+    id: "32122",
+    title: "Commercial Plaza 550 North Main St Southington CT",
+    slug: "commercial-property-550-north-main-st-southington-ct-sold",
+    address: "550 North Main St",
+    city: "Southington",
+    state: "CT",
+    category: "Commercial",
+    tag: "SOLD · BUYER REP",
+    rooms: 0,
+    idLabel: "32122",
+    price: "SOLD",
+    image: "/wp-content/uploads/550-north-main-southington-sold.jpg",
+    agentName: "Sharif Realty Group",
+  },
 ];
 
 export function HomePage() {
-  const { blogPosts } = useAdmin();
+  const { posts: adminPosts, blogPosts, addLead } = useAdmin();
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Dynamic Real-time Featured Properties from Admin Store
+  const featuredProperties = (adminPosts && adminPosts.length > 0 ? adminPosts : FEATURED_PROPERTIES_DATA)
+    .slice(0, 6)
+    .map((p: any) => {
+      const isSold =
+        p.propertyStatus === "sold" ||
+        p.status === "sold" ||
+        p.priceLabel === "Sold" ||
+        p.priceLabel?.toLowerCase().includes("sold");
+      const isPending =
+        p.propertyStatus === "pending" || p.propertyStatus === "under_contract";
+      const tag = isSold
+        ? p.priceLabel?.includes("Buyer")
+          ? "SOLD · BUYER REP"
+          : "SOLD"
+        : isPending
+        ? "UNDER CONTRACT"
+        : p.category || "EXCLUSIVE";
+      const displayPrice = isSold
+        ? "SOLD"
+        : isPending
+        ? "Under Contract"
+        : p.priceLabel ||
+          (p.price && Number(p.price) > 0
+            ? `$${Number(p.price).toLocaleString()}`
+            : "Price on Call");
+
+      return {
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        address: p.address || p.city || "Connecticut",
+        city: p.city || "Connecticut",
+        state: p.state || "CT",
+        category: p.category || "Residential",
+        tag,
+        rooms: p.beds ?? 3,
+        idLabel: String(p.id).replace("prop-", ""),
+        price: displayPrice,
+        image: p.image || (p.images && p.images[0]) || OFFICIAL_MEDIA.waterbury,
+        agentName: p.author || "Majeed Sharif",
+      };
+    });
+
+  // Dynamic Real-time Blog Articles from Admin Store
+  const latestArticles = (blogPosts && blogPosts.length > 0 ? blogPosts : BLOGS_DATA)
+    .slice(0, 3)
+    .map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      date: post.date,
+      image: post.coverImage || post.image || DEFAULT_BLOG_IMAGE,
+      link: post.slug ? `/blogs/${post.slug}` : post.link || `/blogs/${post.id}`,
+      author: post.author || "Majeed Sharif",
+      category: post.category || "Market Report",
+      readTime: post.readTime || "3 min read",
+    }));
 
   // Search form state
   const [searchLocation, setSearchLocation] = useState("");
@@ -283,6 +386,18 @@ export function HomePage() {
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSendingMessage(true);
+
+    // Register lead in CRM store in real-time
+    addLead({
+      name: contactForm.name.trim(),
+      email: contactForm.email.trim(),
+      phone: contactForm.phone.trim() || "(203) 802-8099",
+      property: contactForm.interest || "Homepage Consultation Inquiry",
+      message: contactForm.message.trim() || "Consultation request from homepage form.",
+      status: "New",
+      agent: "Majeed Sharif",
+    });
+
     setTimeout(() => {
       setSendingMessage(false);
       toast.success("Thank you! Your inquiry has been submitted to Majeed Sharif.", {
@@ -296,7 +411,7 @@ export function HomePage() {
         message: "",
         newsletter: true,
       });
-    }, 800);
+    }, 400);
   };
 
   const activeSlide = (HERO_SLIDES[currentSlide % HERO_SLIDES.length] || HERO_SLIDES[0]) as (typeof HERO_SLIDES)[number];
@@ -728,7 +843,7 @@ export function HomePage() {
 
         {/* Property Cards Grid */}
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURED_PROPERTIES_DATA.map((prop, idx) => (
+          {featuredProperties.map((prop, idx) => (
             <motion.div
               key={prop.id}
               initial={{ opacity: 0, y: 30 }}
@@ -750,7 +865,13 @@ export function HomePage() {
 
                   {/* Badges */}
                   <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-[#0F172A]/85 text-white backdrop-blur-md border border-white/15">
+                    <span
+                      className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full backdrop-blur-md border ${
+                        prop.tag.includes("SOLD")
+                          ? "bg-rose-600/95 text-white border-rose-400/40 shadow-sm"
+                          : "bg-[#0F172A]/85 text-white border-white/15"
+                      }`}
+                    >
                       {prop.tag}
                     </span>
                   </div>
@@ -762,7 +883,11 @@ export function HomePage() {
                     <span className="text-[11px] font-semibold text-[#B38B59] uppercase tracking-widest">
                       {prop.category}
                     </span>
-                    <span className="font-serif text-lg font-bold text-[#0F172A]">
+                    <span
+                      className={`font-serif text-lg font-bold ${
+                        prop.price === "SOLD" ? "text-rose-600" : "text-[#0F172A]"
+                      }`}
+                    >
                       {prop.price}
                     </span>
                   </div>
@@ -951,7 +1076,7 @@ export function HomePage() {
           </motion.div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {BLOGS_DATA.slice(0, 3).map((post, idx) => (
+            {latestArticles.map((post, idx) => (
               <motion.article
                 key={post.id}
                 initial={{ opacity: 0, y: 25 }}
@@ -967,13 +1092,13 @@ export function HomePage() {
                   <div>
                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                       <img
-                        src="/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg"
+                        src={post.image}
                         alt={post.title}
                         className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"
                       />
                       <span className="absolute top-3 left-3 rounded-full bg-[#0F172A]/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm border border-white/15">
-                        Market Report
+                        {post.category || "Market Report"}
                       </span>
                     </div>
 
@@ -986,7 +1111,7 @@ export function HomePage() {
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <User className="size-3.5 text-[#B38B59]" />
-                          Majeed Sharif
+                          {post.author}
                         </span>
                       </div>
 

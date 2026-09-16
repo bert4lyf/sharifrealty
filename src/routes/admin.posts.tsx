@@ -165,7 +165,7 @@ export default function AdminBlogPostsPage() {
       coverImage: postImage || "/wp-content/uploads/image-16.png",
       status: currentStatus,
       seoScore: postSeoScore,
-      views: editingPost?.views || "1.4k",
+      views: editingPost?.views ? String(editingPost.views) : "0",
     };
 
     if (editingPost) {
@@ -325,22 +325,22 @@ export default function AdminBlogPostsPage() {
                     </td>
 
                     {/* Views */}
-                    <td className="p-3.5 text-slate-500 text-[11px]">
-                      {post.views || "1.2k"} views
+                    <td className="p-3.5 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-semibold">
+                      {parseInt(String(post.views || "0"), 10)} views
                     </td>
 
                     {/* Actions */}
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <a
-                          href={`/${post.slug}/index.html`}
+                        <Link
+                          to="/blogs/$slug"
+                          params={{ slug: post.slug }}
                           target="_blank"
-                          rel="noreferrer"
-                          title="View Mirrored Public Article"
+                          title="View Live Public Article"
                           className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                         >
                           <Eye className="size-4" />
-                        </a>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(post)}
@@ -539,16 +539,39 @@ export default function AdminBlogPostsPage() {
               </div>
 
               {/* Content Body */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 dark:text-slate-300">
-                  Article Body Content *
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    Article Body Content *
+                  </label>
+                  <span className="text-[10px] text-[#B38B59] font-medium">
+                    Arrangement &amp; line breaks match the live site identically
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-t-xl border border-b-0 border-slate-300 dark:border-slate-700 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPostContent((prev) => (prev ? prev + "\n\n" : ""))}
+                    className="px-2 py-0.5 hover:bg-white dark:hover:bg-slate-700 rounded text-[11px] font-semibold text-slate-700 dark:text-slate-200 border border-transparent hover:border-slate-200"
+                    title="Insert New Paragraph Break"
+                  >
+                    + Paragraph Break
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPostContent((prev) => (prev ? prev + "\n• " : "• "))}
+                    className="px-2 py-0.5 hover:bg-white dark:hover:bg-slate-700 rounded text-[11px] font-semibold text-slate-700 dark:text-slate-200 border border-transparent hover:border-slate-200"
+                    title="Insert Bullet Point"
+                  >
+                    • Bullet
+                  </button>
+                </div>
                 <textarea
-                  rows={8}
+                  rows={9}
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
-                  placeholder="<p>Write your article content or HTML here...</p>"
-                  className="w-full p-3 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-sans text-xs focus:outline-none focus:border-[#C5A880]"
+                  placeholder="Write your article content here. Type paragraphs, press Enter for new lines, or use HTML..."
+                  className="w-full p-3 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-b-xl font-sans text-xs focus:outline-none focus:border-[#C5A880] leading-relaxed whitespace-pre-wrap"
                 />
               </div>
             </div>
