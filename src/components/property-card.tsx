@@ -113,8 +113,18 @@ export function PropertyCard({ property }: { property: Property }) {
               </span>
             )}
 
-            <span className="rounded-full bg-[#C5A880]/90 text-white backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm">
-              {STATUS_LABELS[property.status] || "For Sale"}
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md text-white ${
+                property.status === "sold"
+                  ? "bg-rose-600/95 ring-1 ring-white/25"
+                  : property.status === "pending" || property.status === "under_contract"
+                  ? "bg-amber-600/95 ring-1 ring-white/25"
+                  : "bg-[#C5A880]/90"
+              }`}
+            >
+              {property.status === "pending" || property.status === "under_contract"
+                ? "Under Contract"
+                : STATUS_LABELS[property.status] || "For Sale"}
             </span>
 
             {property.is_featured && (
@@ -157,7 +167,15 @@ export function PropertyCard({ property }: { property: Property }) {
               {property.category || "Exclusive Estate"}
             </span>
             <div className="font-serif text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight">
-              {property.price ? `$${property.price.toLocaleString()}` : "Price Upon Request"}
+              {property.status === "sold" ? (
+                <span className="text-rose-600 font-bold tracking-normal">SOLD</span>
+              ) : property.status === "pending" || property.status === "under_contract" ? (
+                <span className="text-amber-700 font-bold text-sm tracking-normal uppercase">Under Contract</span>
+              ) : property.price ? (
+                `$${property.price.toLocaleString()}`
+              ) : (
+                "Price on Call"
+              )}
             </div>
           </div>
 
@@ -168,7 +186,13 @@ export function PropertyCard({ property }: { property: Property }) {
           <p className="flex items-center gap-1.5 text-xs text-slate-500">
             <MapPin className="size-3.5 shrink-0 text-[#C5A880]" aria-hidden="true" />
             <span className="truncate">
-              {property.address}, {property.city}, {property.state}
+              {property.id === "prop-31965" || property.slug?.includes("split-level")
+                ? "Waterbury Connecticut"
+                : property.id === "prop-32097" || property.slug?.includes("new-britain")
+                ? "Berlin Connecticut"
+                : property.state === "Connecticut"
+                ? `${property.city} ${property.state}`
+                : `${property.address}, ${property.city}, ${property.state}`}
             </span>
           </p>
 
@@ -198,16 +222,23 @@ export function PropertyCard({ property }: { property: Property }) {
             </div>
           </dl>
 
-          {/* Card Footer: Agent & View Link */}
+          {/* Card Footer: Location in bottom & View Link */}
           <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#EAE6DF] text-xs">
-            <div className="flex items-center gap-2">
-              <img
-                src="/wp-content/uploads/Sharif-Photo.jpg"
-                onError={withImageFallback}
-                alt="Majeed Sharif"
-                className="size-6 rounded-full object-cover border border-[#C5A880]/40"
-              />
-              <span className="font-semibold text-slate-700 text-[11px]">Majeed Sharif</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+              <MapPin className="size-3.5 text-[#B38B59] shrink-0" />
+              <span className="truncate max-w-[170px]">
+                {property.id === "prop-31965" || property.slug?.includes("split-level")
+                  ? "Waterbury Connecticut"
+                  : property.id === "prop-32097" || property.slug?.includes("new-britain")
+                  ? "Berlin Connecticut"
+                  : property.city?.toLowerCase() === "waterbury"
+                  ? "Waterbury Connecticut"
+                  : property.city?.toLowerCase() === "berlin"
+                  ? "Berlin Connecticut"
+                  : property.state === "Connecticut"
+                  ? `${property.city} ${property.state}`
+                  : `${property.city}, ${property.state}`}
+              </span>
             </div>
             <span className="text-xs font-semibold text-[#0F172A] group-hover:text-[#B38B59] flex items-center gap-1 transition-colors">
               Explore Property <ArrowRight className="size-3" />

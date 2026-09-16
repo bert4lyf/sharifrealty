@@ -717,8 +717,20 @@ function PropertiesPage() {
                             {property.category}
                           </span>
                         )}
-                        <span className="rounded-full bg-[#C5A880] text-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                          {STATUS_LABELS[property.status] || "For Sale"}
+                        <span
+                          className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                            property.status === "sold"
+                              ? "bg-rose-600 text-white shadow-sm ring-1 ring-white/30"
+                              : property.status === "pending" || property.status === "under_contract"
+                              ? "bg-amber-600 text-white shadow-sm ring-1 ring-white/30"
+                              : "bg-[#C5A880] text-white"
+                          }`}
+                        >
+                          {property.status === "pending" || property.status === "under_contract"
+                            ? "Under Contract"
+                            : property.status === "sold"
+                            ? "Sold"
+                            : (STATUS_LABELS[property.status] || "For Sale")}
                         </span>
                       </div>
                     </Link>
@@ -740,7 +752,13 @@ function PropertiesPage() {
 
                         <p className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                           <MapPin className="size-3.5 text-[#C5A880]" />
-                          {property.address}, {property.city}, {property.state} {property.zip}
+                          {property.id === "prop-31965" || property.slug?.includes("split-level")
+                            ? "Waterbury Connecticut"
+                            : property.id === "prop-32097" || property.slug?.includes("new-britain")
+                            ? "Berlin Connecticut"
+                            : property.state === "Connecticut"
+                            ? `${property.city} ${property.state}`
+                            : `${property.address}, ${property.city}, ${property.state} ${property.zip}`}
                         </p>
 
                         <p className="text-sm text-slate-600 mt-3 line-clamp-2 leading-relaxed font-sans">
@@ -759,11 +777,25 @@ function PropertiesPage() {
                           <span><strong>{formatNumber(property.sqft)}</strong> sqft</span>
                         </div>
 
-                        <Button asChild size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl">
-                          <Link to="/properties/$id" params={{ id: property.slug }}>
-                            Explore Property &rarr;
-                          </Link>
-                        </Button>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                            <MapPin className="size-3.5 text-[#C5A880]" />
+                            {property.id === "prop-31965" || property.slug?.includes("split-level")
+                              ? "Waterbury Connecticut"
+                              : property.id === "prop-32097" || property.slug?.includes("new-britain")
+                              ? "Berlin Connecticut"
+                              : property.city?.toLowerCase() === "waterbury"
+                              ? "Waterbury Connecticut"
+                              : property.city?.toLowerCase() === "berlin"
+                              ? "Berlin Connecticut"
+                              : `${property.city} ${property.state}`}
+                          </span>
+                          <Button asChild size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl">
+                            <Link to="/properties/$id" params={{ id: property.slug }}>
+                              Explore Property &rarr;
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </article>

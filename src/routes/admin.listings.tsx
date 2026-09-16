@@ -51,11 +51,15 @@ export default function AdminListingsPage() {
         p.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.city.toLowerCase().includes(searchQuery.toLowerCase());
 
+      const isSold = p.propertyStatus === "sold";
+      const isPending = p.propertyStatus === "pending";
+      const isActive = p.propertyStatus === "for_sale" || (!isSold && !isPending && p.status === "Published");
+
       const matchStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && (p.propertyStatus === "for_sale" || p.status === "Published")) ||
-        (statusFilter === "pending" && p.propertyStatus === "pending") ||
-        (statusFilter === "sold" && p.propertyStatus === "sold");
+        (statusFilter === "active" && isActive) ||
+        (statusFilter === "pending" && isPending) ||
+        (statusFilter === "sold" && isSold);
 
       const matchType =
         typeFilter === "all" ||
@@ -153,7 +157,7 @@ export default function AdminListingsPage() {
             >
               <option value="all">All Statuses</option>
               <option value="active">Active (For Sale)</option>
-              <option value="pending">Pending</option>
+              <option value="pending">Under Contract</option>
               <option value="sold">Sold</option>
             </select>
 
@@ -181,6 +185,13 @@ export default function AdminListingsPage() {
                 className="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold"
               >
                 Mark Active
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkStatusChange("pending")}
+                className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-xs font-semibold"
+              >
+                Mark Under Contract
               </button>
               <button
                 type="button"
@@ -291,7 +302,9 @@ export default function AdminListingsPage() {
                       <td className="p-3.5 text-slate-600 dark:text-slate-300">
                         <div className="flex items-center gap-1">
                           <MapPin className="size-3 text-[#B38B59] shrink-0" />
-                          <span className="truncate max-w-[160px]">{p.address}, {p.city}</span>
+                          <span className="truncate max-w-[160px]">
+                            {p.state === "Connecticut" ? `${p.city} ${p.state}` : `${p.address}, ${p.city}`}
+                          </span>
                         </div>
                       </td>
 
@@ -311,14 +324,22 @@ export default function AdminListingsPage() {
                       <td className="p-3.5">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            p.propertyStatus === "for_sale" || p.status === "Published"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : p.propertyStatus === "pending"
+                            p.propertyStatus === "sold"
+                              ? "bg-rose-50 text-rose-700 border border-rose-200"
+                              : p.propertyStatus === "pending" || p.propertyStatus === "under_contract"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
+                              : p.propertyStatus === "for_sale" || p.status === "Published"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-slate-100 text-slate-600 border border-slate-300"
                           }`}
                         >
-                          {p.propertyStatus === "for_sale" ? "Active" : p.propertyStatus || p.status}
+                          {p.propertyStatus === "sold"
+                            ? "Sold"
+                            : p.propertyStatus === "pending" || p.propertyStatus === "under_contract"
+                            ? "Under Contract"
+                            : p.propertyStatus === "for_sale"
+                            ? "Active"
+                            : p.propertyStatus || p.status}
                         </span>
                       </td>
 

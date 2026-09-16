@@ -9,7 +9,8 @@ export function formatNumber(value: number) {
 
 export const STATUS_LABELS: Record<string, string> = {
   for_sale: "For Sale",
-  pending: "Pending",
+  pending: "Under Contract",
+  under_contract: "Under Contract",
   sold: "Sold",
   for_rent: "For Rent",
   rented: "Rented",

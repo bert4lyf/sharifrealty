@@ -502,4 +502,53 @@ export const ALL_PROPERTY_MEDIA_ASSETS: MediaAsset[] = [
     folder: "properties",
     uploadedAt: "2026-01-25",
   },
+  // 4BR Colonial with Solar Panels, Waterbury CT
+  {
+    id: "med-waterbury-solar-1",
+    title: "4BR Colonial with Solar Panels Waterbury CT",
+    filename: "waterbury-colonial-solar.jpg",
+    url: "/wp-content/uploads/waterbury-colonial-solar.jpg",
+    fileSize: "289 KB",
+    dimensions: "1024 x 768",
+    type: "image",
+    folder: "properties",
+    uploadedAt: "2026-09-16",
+  },
+  // Split Level Home - 115 Kendall Dr Waterbury
+  {
+    id: "med-kendall-1",
+    title: "115 Kendall Dr Split Level Home Waterbury",
+    filename: "115-KENDALL-PIC-1.webp",
+    url: "/wp-content/uploads/2025/06/115-KENDALL-PIC-1.webp",
+    fileSize: "55 KB",
+    dimensions: "774 x 416",
+    type: "image",
+    folder: "properties",
+    uploadedAt: "2025-06-07",
+  },
+  // 270 New Britain Rd Unit 20 Berlin CT
+  {
+    id: "med-new-britain-1",
+    title: "270 New Britain Rd Unit 20 Berlin CT",
+    filename: "1-2.png",
+    url: "/wp-content/uploads/2026/01/1-2.png",
+    fileSize: "997 KB",
+    dimensions: "1920 x 1080",
+    type: "image",
+    folder: "properties",
+    uploadedAt: "2026-01-25",
+  },
+  // 110 White Birch Dr, Waterbury CT (Under Contract)
+  {
+    id: "med-white-birch-1",
+    title: "110 White Birch Dr Raised Ranch Waterbury CT",
+    filename: "waterbury-split-level-110.jpg",
+    url: "/wp-content/uploads/waterbury-split-level-110.jpg",
+    fileSize: "268 KB",
+    dimensions: "1024 x 768",
+    type: "image",
+    folder: "properties",
+    uploadedAt: "2026-09-16",
+  },
 ];
+

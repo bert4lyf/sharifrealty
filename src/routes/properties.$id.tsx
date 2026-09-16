@@ -284,8 +284,16 @@ export function PropertyDetail() {
                 <span className="rounded-full bg-[#0F172A] px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
                   {currentAdminPost.category || "Residential"}
                 </span>
-                <span className="rounded-full bg-[#C5A880] px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
-                  {STATUS_LABELS[property.status] || "For Sale"}
+                <span
+                  className={`rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
+                    property.status === "sold"
+                      ? "bg-rose-600 ring-2 ring-rose-200"
+                      : property.status === "pending" || property.status === "under_contract"
+                      ? "bg-amber-600 ring-2 ring-amber-200"
+                      : "bg-[#C5A880]"
+                  }`}
+                >
+                  {property.status === "sold" ? "Sold" : (STATUS_LABELS[property.status] || "For Sale")}
                 </span>
               </div>
 
@@ -295,17 +303,46 @@ export function PropertyDetail() {
 
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="size-4 text-[#C5A880] shrink-0" />
-                <span>{property.address}, {property.city}, {property.state} {property.zip}</span>
+                <span>
+                  {property.state === "Connecticut"
+                    ? `${property.city} ${property.state}`
+                    : `${property.address}, ${property.city}, ${property.state} ${property.zip}`}
+                </span>
               </div>
             </div>
 
             {/* Price & Actions */}
             <div className="flex flex-col sm:items-end justify-between gap-4">
               <div className="sm:text-right">
-                <span className="block text-xs uppercase font-semibold text-[#B38B59] tracking-widest">Valuation / Asking Price</span>
-                <span className="font-serif text-3xl sm:text-4xl font-bold text-[#0F172A]">
-                  {currentAdminPost.priceLabel || "Price upon request"}
+                <span className="block text-xs uppercase font-semibold text-[#B38B59] tracking-widest">
+                  {property.status === "sold"
+                    ? "Listing Status"
+                    : property.status === "pending" || property.status === "under_contract"
+                    ? "Listing Status"
+                    : "Valuation / Asking Price"}
                 </span>
+                <div
+                  className={`font-serif text-3xl sm:text-4xl font-bold ${
+                    property.status === "sold"
+                      ? "text-rose-600"
+                      : property.status === "pending" || property.status === "under_contract"
+                      ? "text-amber-600"
+                      : "text-[#0F172A]"
+                  }`}
+                >
+                  {property.status === "sold" ? (
+                    "SOLD"
+                  ) : property.status === "pending" || property.status === "under_contract" ? (
+                    <div className="flex flex-col sm:items-end">
+                      <span>Under Contract</span>
+                      <span className="text-sm font-sans font-medium text-slate-500">
+                        {currentAdminPost.priceLabel || "Price on Call"}
+                      </span>
+                    </div>
+                  ) : (
+                    currentAdminPost.priceLabel || "Price upon request"
+                  )}
+                </div>
               </div>
 
               {/* Social Share & Favorite Buttons */}
@@ -404,7 +441,9 @@ export function PropertyDetail() {
                 </div>
                 <div>
                   <span className="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Property Status:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 mt-1 block">{STATUS_LABELS[property.status] || "For Sale"}</span>
+                  <span className={`font-bold mt-1 block ${property.status === "sold" ? "text-rose-600 font-bold" : "text-slate-800 dark:text-slate-200"}`}>
+                    {STATUS_LABELS[property.status] || "For Sale"}
+                  </span>
                 </div>
                 {property.lot_size && (
                   <div>
@@ -427,7 +466,7 @@ export function PropertyDetail() {
                 Description
               </h2>
               <div className="mt-6 text-base text-slate-700 dark:text-slate-300 leading-relaxed space-y-4">
-                <p>{property.description}</p>
+                <p className="whitespace-pre-line">{property.description}</p>
               </div>
             </div>
 

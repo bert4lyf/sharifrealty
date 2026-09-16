@@ -462,20 +462,22 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [siteOptions, setSiteOptions] = useState<SiteOptionsData>(SEED_SITE_OPTIONS);
   const [leads, setLeads] = useState<CrmLead[]>(SEED_CRM_LEADS);
 
-  const SEED_VERSION_KEY = "sharif.admin.seed_version_v5";
+  const SEED_VERSION_KEY = "sharif.admin.seed_version_v8";
 
   useEffect(() => {
     const version = typeof window !== "undefined" ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
-    if (version !== "v5") {
+    if (version !== "v8") {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(POSTS_KEY);
         window.localStorage.removeItem(BLOG_KEY);
         window.localStorage.removeItem(USERS_KEY);
-        window.localStorage.setItem(SEED_VERSION_KEY, "v5");
+        window.localStorage.removeItem(MEDIA_KEY);
+        window.localStorage.setItem(SEED_VERSION_KEY, "v8");
       }
       setPosts(SEED_PROPERTIES);
       setBlogPosts(SEED_BLOG_POSTS);
       setUsers(SEED_USERS);
+      setMediaAssets(SEED_MEDIA_ASSETS);
     } else {
       setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
       setBlogPosts(readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS));
