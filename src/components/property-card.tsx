@@ -117,12 +117,12 @@ export function PropertyCard({ property }: { property: Property }) {
               className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md text-white ${
                 property.status === "sold"
                   ? "bg-rose-600/95 ring-1 ring-white/25"
-                  : property.status === "pending" || property.status === "under_contract"
+                  : property.status === "pending" || (property.status as string) === "under_contract"
                   ? "bg-amber-600/95 ring-1 ring-white/25"
                   : "bg-[#C5A880]/90"
               }`}
             >
-              {property.status === "pending" || property.status === "under_contract"
+              {property.status === "pending" || (property.status as string) === "under_contract"
                 ? "Under Contract"
                 : STATUS_LABELS[property.status] || "For Sale"}
             </span>
@@ -169,7 +169,7 @@ export function PropertyCard({ property }: { property: Property }) {
             <div className="font-serif text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight">
               {property.status === "sold" ? (
                 <span className="text-rose-600 font-bold tracking-normal">SOLD</span>
-              ) : property.status === "pending" || property.status === "under_contract" ? (
+              ) : property.status === "pending" || (property.status as string) === "under_contract" ? (
                 <span className="text-amber-700 font-bold text-sm tracking-normal uppercase">Under Contract</span>
               ) : property.price ? (
                 `$${property.price.toLocaleString()}`

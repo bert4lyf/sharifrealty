@@ -192,7 +192,7 @@ export function PropertyDetail() {
       propertyTitle: property.title,
       name: tourName || (user?.name ?? "Prospective Buyer"),
       email: tourEmail || (user?.email ?? "buyer@example.com"),
-      phone: tourPhone || user?.phone,
+      phone: tourPhone || user?.phone || "",
       message: `${tourNotes} (Preferred Date/Time: ${tourDay.day} ${tourDay.date} ${tourDay.month} at ${selectedTourTime} - ${tourType === 'in_person' ? 'In-Person Tour' : 'Video Chat'})`,
       type: "tour",
     });
@@ -288,7 +288,7 @@ export function PropertyDetail() {
                   className={`rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
                     property.status === "sold"
                       ? "bg-rose-600 ring-2 ring-rose-200"
-                      : property.status === "pending" || property.status === "under_contract"
+                      : property.status === "pending" || (property.status as string) === "under_contract"
                       ? "bg-amber-600 ring-2 ring-amber-200"
                       : "bg-[#C5A880]"
                   }`}
@@ -317,7 +317,7 @@ export function PropertyDetail() {
                 <span className="block text-xs uppercase font-semibold text-[#B38B59] tracking-widest">
                   {property.status === "sold"
                     ? "Listing Status"
-                    : property.status === "pending" || property.status === "under_contract"
+                    : property.status === "pending" || (property.status as string) === "under_contract"
                     ? "Listing Status"
                     : "Valuation / Asking Price"}
                 </span>
@@ -325,14 +325,14 @@ export function PropertyDetail() {
                   className={`font-serif text-3xl sm:text-4xl font-bold ${
                     property.status === "sold"
                       ? "text-rose-600"
-                      : property.status === "pending" || property.status === "under_contract"
+                      : property.status === "pending" || (property.status as string) === "under_contract"
                       ? "text-amber-600"
                       : "text-[#0F172A]"
                   }`}
                 >
                   {property.status === "sold" ? (
                     "SOLD"
-                  ) : property.status === "pending" || property.status === "under_contract" ? (
+                  ) : property.status === "pending" || (property.status as string) === "under_contract" ? (
                     <div className="flex flex-col sm:items-end">
                       <span>Under Contract</span>
                       <span className="text-sm font-sans font-medium text-slate-500">

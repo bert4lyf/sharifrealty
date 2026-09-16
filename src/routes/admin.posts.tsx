@@ -36,6 +36,8 @@ export const Route = createFileRoute("/admin/posts")({
   component: AdminBlogPostsPage,
 });
 
+const DEFAULT_BLOG_IMAGE = "/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg";
+
 export default function AdminBlogPostsPage() {
   const { blogPosts, createBlogPost, updateBlogPost, deleteBlogPost, mediaAssets, addMediaAsset } = useAdmin();
 
@@ -53,11 +55,12 @@ export default function AdminBlogPostsPage() {
   // Form State for Drawer
   const [postTitle, setPostTitle] = useState("");
   const [postSlug, setPostSlug] = useState("");
+  const [postSourceUrl, setPostSourceUrl] = useState("");
   const [postCategory, setPostCategory] = useState("Market Trends");
   const [postAuthor, setPostAuthor] = useState("Majeed Sharif");
   const [postExcerpt, setPostExcerpt] = useState("");
   const [postContent, setPostContent] = useState("");
-  const [postImage, setPostImage] = useState("/wp-content/uploads/image-16.png");
+  const [postImage, setPostImage] = useState(DEFAULT_BLOG_IMAGE);
   const [postStatus, setPostStatus] = useState<"Published" | "Draft">("Published");
   const [postSeoScore, setPostSeoScore] = useState(90);
 
@@ -93,11 +96,12 @@ export default function AdminBlogPostsPage() {
     setEditingPost(null);
     setPostTitle("");
     setPostSlug("");
+    setPostSourceUrl("");
     setPostCategory("Market Trends");
     setPostAuthor("Majeed Sharif");
     setPostExcerpt("");
     setPostContent("");
-    setPostImage("/wp-content/uploads/image-16.png");
+    setPostImage(DEFAULT_BLOG_IMAGE);
     setPostStatus("Published");
     setPostSeoScore(92);
     setSlideOverOpen(true);
@@ -107,11 +111,12 @@ export default function AdminBlogPostsPage() {
     setEditingPost(post);
     setPostTitle(post.title);
     setPostSlug(post.slug);
+    setPostSourceUrl(post.sourceUrl || "");
     setPostCategory(post.category || "Market Trends");
     setPostAuthor(post.author || "Majeed Sharif");
     setPostExcerpt(post.excerpt || "");
     setPostContent(post.content || "");
-    setPostImage(post.coverImage || "/wp-content/uploads/image-16.png");
+    setPostImage(post.coverImage || DEFAULT_BLOG_IMAGE);
     setPostStatus(post.status || "Published");
     setPostSeoScore(post.seoScore ?? 88);
     setSlideOverOpen(true);
@@ -131,8 +136,10 @@ export default function AdminBlogPostsPage() {
         addMediaAsset({
           title: file.name,
           url: result,
-          size: `${Math.round(file.size / 1024)} KB`,
-          type: "Image",
+          filename: file.name,
+          fileSize: `${Math.round(file.size / 1024)} KB`,
+          dimensions: "Auto",
+          type: "image",
         });
         toast.success(`Image "${file.name}" uploaded from device and set as cover.`);
       }
@@ -147,22 +154,38 @@ export default function AdminBlogPostsPage() {
     }
 
     const currentStatus = statusOverride || postStatus;
-    const generatedSlug =
-      postSlug.trim() ||
-      postTitle
+    const trimmedSlug = postSlug.trim();
+    let finalSourceUrl = postSourceUrl.trim();
+    let generatedSlug = "";
+
+    // If user pasted a full URL into the slug field, preserve it as sourceUrl and generate a clean slug
+    if (trimmedSlug.startsWith("http://") || trimmedSlug.startsWith("https://")) {
+      if (!finalSourceUrl) {
+        finalSourceUrl = trimmedSlug;
+      }
+      generatedSlug = postTitle
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
+    } else {
+      generatedSlug =
+        trimmedSlug ||
+        postTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+    }
 
     const draftData: Partial<BlogPost> = {
       title: postTitle,
       slug: generatedSlug,
+      sourceUrl: finalSourceUrl || undefined,
       category: postCategory,
       author: postAuthor,
       authorRole: "Principal Broker",
       excerpt: postExcerpt,
       content: postContent,
-      coverImage: postImage || "/wp-content/uploads/image-16.png",
+      coverImage: postImage || DEFAULT_BLOG_IMAGE,
       status: currentStatus,
       seoScore: postSeoScore,
       views: editingPost?.views ? String(editingPost.views) : "0",
@@ -279,9 +302,12 @@ export default function AdminBlogPostsPage() {
                     <td className="p-3.5">
                       <div className="flex items-center gap-3">
                         <img
-                          src={post.coverImage || "/wp-content/uploads/image-16.png"}
+                          src={post.coverImage || DEFAULT_BLOG_IMAGE}
                           alt={post.title}
                           className="size-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
+                          }}
                         />
                         <div className="min-w-0">
                           <div className="font-bold text-slate-900 dark:text-white truncate max-w-[280px]">
@@ -332,15 +358,27 @@ export default function AdminBlogPostsPage() {
                     {/* Actions */}
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          to="/blogs/$slug"
-                          params={{ slug: post.slug }}
-                          target="_blank"
-                          title="View Live Public Article"
-                          className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        >
-                          <Eye className="size-4" />
-                        </Link>
+                        {post.slug?.startsWith("http://") || post.slug?.startsWith("https://") ? (
+                          <a
+                            href={post.slug}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open External Article"
+                            className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="size-4" />
+                          </a>
+                        ) : (
+                          <Link
+                            to="/blogs/$slug"
+                            params={{ slug: post.slug }}
+                            target="_blank"
+                            title="View Live Public Article"
+                            className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          >
+                            <Eye className="size-4" />
+                          </Link>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(post)}
@@ -410,12 +448,12 @@ export default function AdminBlogPostsPage() {
               {/* Slug, Category, Author */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 dark:text-slate-300">Slug (URL)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300">Custom URL Slug</label>
                   <input
                     type="text"
                     value={postSlug}
                     onChange={(e) => setPostSlug(e.target.value)}
-                    placeholder="custom-url-slug"
+                    placeholder="e.g. market-update-2026"
                     className="w-full p-2.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-mono text-xs focus:outline-none focus:border-[#C5A880]"
                   />
                 </div>
@@ -446,6 +484,25 @@ export default function AdminBlogPostsPage() {
                     <option value="Sharif Editorial Team">Sharif Editorial Team</option>
                   </select>
                 </div>
+              </div>
+
+              {/* External Article / Source Link (e.g., The Hour, NAR) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">
+                    External Article / Source Link (Optional)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Paste external URL (e.g. The Hour, NAR) to link directly
+                  </span>
+                </div>
+                <input
+                  type="url"
+                  value={postSourceUrl}
+                  onChange={(e) => setPostSourceUrl(e.target.value)}
+                  placeholder="https://www.thehour.com/realestate/article/... or https://www.nar.realtor/..."
+                  className="w-full p-2.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-mono text-xs focus:outline-none focus:border-[#C5A880]"
+                />
               </div>
 
               {/* COVER IMAGE PICKER (Device or Media Library - NO Raw URL requirement) */}
@@ -653,7 +710,7 @@ export default function AdminBlogPostsPage() {
                   />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white">
                     <p className="text-[11px] font-bold truncate">{asset.title}</p>
-                    <p className="text-[9px] text-slate-300">{asset.size || "Image"}</p>
+                    <p className="text-[9px] text-slate-300">{asset.fileSize || (asset as any).size || "Image"}</p>
                   </div>
                 </button>
               ))}

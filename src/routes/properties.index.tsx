@@ -778,12 +778,12 @@ function PropertiesPage() {
                           className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
                             property.status === "sold"
                               ? "bg-rose-600 text-white shadow-sm ring-1 ring-white/30"
-                              : property.status === "pending" || property.status === "under_contract"
+                              : property.status === "pending" || (property.status as string) === "under_contract"
                               ? "bg-amber-600 text-white shadow-sm ring-1 ring-white/30"
                               : "bg-[#C5A880] text-white"
                           }`}
                         >
-                          {property.status === "pending" || property.status === "under_contract"
+                          {property.status === "pending" || (property.status as string) === "under_contract"
                             ? "Under Contract"
                             : property.status === "sold"
                             ? "Sold"

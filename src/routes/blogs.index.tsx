@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { ArrowRight, Calendar, User, BookOpen } from "lucide-react";
+import { ArrowRight, Calendar, User, BookOpen, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,81 @@ export function BlogPage() {
         {/* Articles Grid */}
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((post, idx) => {
+            const isExternal =
+              post.slug?.startsWith("http://") ||
+              post.slug?.startsWith("https://") ||
+              (Boolean(post.sourceUrl) && !post.content);
+            const externalUrl = post.slug?.startsWith("http") ? post.slug : post.sourceUrl;
+            const coverImg =
+              (post.coverImage && post.coverImage.trim()) ||
+              (post.galleryImages && post.galleryImages[0]) ||
+              DEFAULT_BLOG_IMAGE;
+
+            const cardInner = (
+              <>
+                <div>
+                  <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                    <img
+                      src={coverImg}
+                      alt={post.title}
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
+                      }}
+                    />
+                    <span className="absolute top-3 left-3 rounded-full bg-[#0F172A]/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm border border-white/15">
+                      {post.category || "Market Report"}
+                    </span>
+                    {isExternal && (
+                      <span className="absolute top-3 right-3 rounded-full bg-[#B38B59]/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow">
+                        External Link
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="size-3.5 text-[#B38B59]" />
+                        {post.date}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <User className="size-3.5 text-[#B38B59]" />
+                        {post.author || "Majeed Sharif"}
+                      </span>
+                    </div>
+
+                    <h3 className="font-serif text-lg font-bold text-[#0F172A] group-hover:text-[#B38B59] transition-colors line-clamp-2 leading-snug">
+                      {post.title}
+                    </h3>
+
+                    <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                      {post.excerpt}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-6 pb-6 pt-3 border-t border-[#EAE6DF] flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#0F172A] group-hover:text-[#B38B59] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    {isExternal ? (
+                      <>
+                        Open Article <ExternalLink className="size-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        Read Article <ArrowRight className="size-3.5" />
+                      </>
+                    )}
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {post.readTime || "3 min read"}
+                  </span>
+                </div>
+              </>
+            );
+
             return (
               <motion.article
                 key={post.id}
@@ -102,59 +177,24 @@ export function BlogPage() {
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
                 className="card-lift group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#EAE6DF] bg-white shadow-sm hover:border-[#C5A880]"
               >
-                <Link
-                  to="/blogs/$slug"
-                  params={{ slug: post.slug }}
-                  className="flex flex-col h-full justify-between focus:outline-none"
-                >
-                  <div>
-                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                      <img
-                        src={post.coverImage || DEFAULT_BLOG_IMAGE}
-                        alt={post.title}
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
-                        }}
-                      />
-                      <span className="absolute top-3 left-3 rounded-full bg-[#0F172A]/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm border border-white/15">
-                        {post.category || "Market Report"}
-                      </span>
-                    </div>
-
-                    <div className="p-6 space-y-3">
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="size-3.5 text-[#B38B59]" />
-                          {post.date}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <User className="size-3.5 text-[#B38B59]" />
-                          Majeed Sharif
-                        </span>
-                      </div>
-
-                      <h3 className="font-serif text-lg font-bold text-[#0F172A] group-hover:text-[#B38B59] transition-colors line-clamp-2 leading-snug">
-                        {post.title}
-                      </h3>
-
-                      <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                        {post.excerpt}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="px-6 pb-6 pt-3 border-t border-[#EAE6DF] flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#0F172A] group-hover:text-[#B38B59] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      Read Article <ArrowRight className="size-3.5" />
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {post.readTime || "3 min read"}
-                    </span>
-                  </div>
-                </Link>
+                {isExternal && externalUrl ? (
+                  <a
+                    href={externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col h-full justify-between focus:outline-none"
+                  >
+                    {cardInner}
+                  </a>
+                ) : (
+                  <Link
+                    to="/blogs/$slug"
+                    params={{ slug: post.slug }}
+                    className="flex flex-col h-full justify-between focus:outline-none"
+                  >
+                    {cardInner}
+                  </Link>
+                )}
               </motion.article>
             );
           })}

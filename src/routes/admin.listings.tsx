@@ -326,7 +326,7 @@ export default function AdminListingsPage() {
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             p.propertyStatus === "sold"
                               ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : p.propertyStatus === "pending" || p.propertyStatus === "under_contract"
+                              : p.propertyStatus === "pending" || (p.propertyStatus as string) === "under_contract"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : p.propertyStatus === "for_sale" || p.status === "Published"
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -335,7 +335,7 @@ export default function AdminListingsPage() {
                         >
                           {p.propertyStatus === "sold"
                             ? "Sold"
-                            : p.propertyStatus === "pending" || p.propertyStatus === "under_contract"
+                            : p.propertyStatus === "pending" || (p.propertyStatus as string) === "under_contract"
                             ? "Under Contract"
                             : p.propertyStatus === "for_sale"
                             ? "Active"

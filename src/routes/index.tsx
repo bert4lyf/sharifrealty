@@ -17,6 +17,7 @@ import {
   Building,
   Home as HomeIcon,
   Briefcase,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -339,16 +340,29 @@ export function HomePage() {
   // Dynamic Real-time Blog Articles from Admin Store
   const latestArticles = (blogPosts && blogPosts.length > 0 ? blogPosts : BLOGS_DATA)
     .slice(0, 3)
-    .map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      date: post.date,
-      image: post.coverImage || post.image || DEFAULT_BLOG_IMAGE,
-      link: post.slug ? `/blogs/${post.slug}` : post.link || `/blogs/${post.id}`,
-      author: post.author || "Majeed Sharif",
-      category: post.category || "Market Report",
-      readTime: post.readTime || "3 min read",
-    }));
+    .map((post: any) => {
+      const isExternal =
+        post.slug?.startsWith("http://") ||
+        post.slug?.startsWith("https://") ||
+        (Boolean(post.sourceUrl) && !post.content);
+      const externalUrl = post.slug?.startsWith("http") ? post.slug : post.sourceUrl;
+      return {
+        id: post.id,
+        title: post.title,
+        date: post.date,
+        image:
+          (post.coverImage && post.coverImage.trim()) ||
+          (post.galleryImages && post.galleryImages[0]) ||
+          post.image ||
+          DEFAULT_BLOG_IMAGE,
+        link: post.slug ? `/blogs/${post.slug}` : post.link || `/blogs/${post.id}`,
+        isExternal,
+        externalUrl,
+        author: post.author || "Majeed Sharif",
+        category: post.category || "Market Report",
+        readTime: post.readTime || "3 min read",
+      };
+    });
 
   // Search form state
   const [searchLocation, setSearchLocation] = useState("");
@@ -1076,19 +1090,9 @@ export function HomePage() {
           </motion.div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {latestArticles.map((post, idx) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 25 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-                className="card-lift group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#EAE6DF] bg-white shadow-sm hover:border-[#C5A880]"
-              >
-                <Link
-                  to={post.link}
-                  className="flex flex-col h-full justify-between focus:outline-none"
-                >
+            {latestArticles.map((post, idx) => {
+              const cardContent = (
+                <>
                   <div>
                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                       <img
@@ -1096,10 +1100,18 @@ export function HomePage() {
                         alt={post.title}
                         className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                         loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
+                        }}
                       />
                       <span className="absolute top-3 left-3 rounded-full bg-[#0F172A]/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm border border-white/15">
                         {post.category || "Market Report"}
                       </span>
+                      {post.isExternal && (
+                        <span className="absolute top-3 right-3 rounded-full bg-[#B38B59]/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow">
+                          External Link
+                        </span>
+                      )}
                     </div>
 
                     <div className="p-6 space-y-3">
@@ -1123,15 +1135,52 @@ export function HomePage() {
 
                   <div className="px-6 pb-6 pt-3 border-t border-[#EAE6DF] flex items-center justify-between">
                     <span className="text-xs font-semibold text-[#0F172A] group-hover:text-[#B38B59] flex items-center gap-1 transition-colors">
-                      Read Article <ArrowRight className="size-3.5" />
+                      {post.isExternal ? (
+                        <>
+                          Open Article <ExternalLink className="size-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          Read Article <ArrowRight className="size-3.5" />
+                        </>
+                      )}
                     </span>
                     <span className="text-[11px] text-slate-400 font-medium">
-                      3 min read
+                      {post.readTime || "3 min read"}
                     </span>
                   </div>
-                </Link>
-              </motion.article>
-            ))}
+                </>
+              );
+
+              return (
+                <motion.article
+                  key={post.id}
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                  className="card-lift group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#EAE6DF] bg-white shadow-sm hover:border-[#C5A880]"
+                >
+                  {post.isExternal && post.externalUrl ? (
+                    <a
+                      href={post.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col h-full justify-between focus:outline-none"
+                    >
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <Link
+                      to={post.link}
+                      className="flex flex-col h-full justify-between focus:outline-none"
+                    >
+                      {cardContent}
+                    </Link>
+                  )}
+                </motion.article>
+              );
+            })}
           </div>
         </div>
       </section>

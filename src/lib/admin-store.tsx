@@ -43,14 +43,14 @@ export type AppUser = {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | undefined;
   role: UserRole;
   status: "Active" | "Inactive";
   dateJoined: string;
   favorites: string[];
   inquiries: UserInquiry[];
-  password?: string;
-  avatar?: string;
+  password?: string | undefined;
+  avatar?: string | undefined;
 };
 
 export type AdminUser = AppUser;
@@ -425,7 +425,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setMediaAssets(SEED_MEDIA_ASSETS);
     } else {
       setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
-      setBlogPosts(readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS));
+      const loadedBlogs = readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS);
+      const cleanBlogs = loadedBlogs.map((b) => ({
+        ...b,
+        coverImage:
+          b.coverImage && b.coverImage.trim() !== ""
+            ? b.coverImage
+            : "/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg",
+      }));
+      setBlogPosts(cleanBlogs);
       const loadedUsers = readJson<AppUser[]>(USERS_KEY, SEED_USERS);
       const cleanUsers = loadedUsers.filter(
         (u) => !DEMO_USER_EMAILS.includes(u.email.toLowerCase()),
@@ -559,9 +567,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     // Allow user login for newly typed emails
     if (cleanEmail.includes("@") && cleanPass.length >= 4) {
+      const emailPrefix = cleanEmail.split("@")[0] || "User";
       const newUser: AppUser = {
         id: `u-${Date.now()}`,
-        name: cleanEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        name: emailPrefix.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
         email: cleanEmail,
         role: "Client",
         status: "Active",
@@ -593,9 +602,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         return { ok: false, message: "An account with this email address already exists. Please login." };
       }
 
+      const emailPrefix = cleanEmail.split("@")[0] || "User";
       const newUser: AppUser = {
         id: `u-${Date.now()}`,
-        name: name.trim() || cleanEmail.split("@")[0],
+        name: name.trim() || emailPrefix,
         email: cleanEmail,
         phone: phone.trim() || undefined,
         role: role || "Client",
@@ -701,7 +711,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       if (user) {
         const userInq: UserInquiry = {
           id: newInquiryId,
-          propertyId: data.propertyId,
+          propertyId: data.propertyId || "",
           propertyTitle: data.propertyTitle,
           date: newDate,
           type: data.type || "inquiry",
@@ -848,8 +858,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         slug: draft.slug || `post-${Date.now()}`,
         excerpt: draft.excerpt || "Market analysis and real estate updates from Sharif Realty.",
         content: draft.content || "Full article content...",
-        coverImage: draft.coverImage || "/wp-content/uploads/image-2-1.png",
+        coverImage:
+          draft.coverImage || "/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg",
         author: draft.author || "Majeed Sharif",
+        authorRole: draft.authorRole || "Principal Broker",
+        tags: draft.tags || (draft.category ? [draft.category] : ["Market Report"]),
+        comments: draft.comments ?? 0,
+        sourceUrl: draft.sourceUrl,
         date: draft.date || new Date().toISOString().slice(0, 10),
         category: draft.category || "General",
         status: draft.status || "Published",

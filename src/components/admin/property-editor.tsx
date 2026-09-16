@@ -142,7 +142,9 @@ export function PropertyEditor({ property, onSave, onCancel, open, onClose }: Pr
           addMediaAsset({
             title: file.name.replace(/\.[^/.]+$/, ""),
             url: result,
-            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            filename: file.name,
+            fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            dimensions: "Auto",
             type: file.type.startsWith("video") ? "video" : "image",
           });
         }

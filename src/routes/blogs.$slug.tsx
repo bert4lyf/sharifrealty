@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Calendar,
   User,
@@ -52,6 +52,8 @@ export const Route = createFileRoute("/blogs/$slug")({
   component: SingleBlogPage,
 });
 
+const DEFAULT_BLOG_IMAGE = "/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg";
+
 export function SingleBlogPage() {
   const { slug } = Route.useParams();
   const admin = useAdmin();
@@ -81,9 +83,47 @@ export function SingleBlogPage() {
   const [sendingInquiry, setSendingInquiry] = useState(false);
 
   // Find post in admin store or seed
-  const cleanSlug = typeof slug === "string" ? slug.replace(/\/index\.html$/, "") : "";
-  const currentIndex = blogPosts.findIndex((p) => p.slug === cleanSlug || p.id === cleanSlug || p.slug === slug || p.id === slug);
-  const post: BlogPost = (currentIndex !== -1 ? blogPosts[currentIndex] : blogPosts[0]) || SEED_BLOG_POSTS_DATA[0];
+  const rawSlug = typeof slug === "string" ? slug : "";
+  const cleanSlug = rawSlug.replace(/\/index\.html$/, "");
+  const decodedSlug = (() => {
+    try {
+      return decodeURIComponent(cleanSlug);
+    } catch {
+      return cleanSlug;
+    }
+  })();
+
+  // Detect if slug was accidentally entered or linked as an external URL (e.g., The Hour, NAR)
+  const isExternalSlug =
+    cleanSlug.startsWith("http://") ||
+    cleanSlug.startsWith("https://") ||
+    decodedSlug.startsWith("http://") ||
+    decodedSlug.startsWith("https://");
+  const externalTargetUrl = isExternalSlug
+    ? (decodedSlug.startsWith("http") ? decodedSlug : cleanSlug)
+    : "";
+
+  const currentIndex = blogPosts.findIndex(
+    (p) =>
+      p.slug === cleanSlug ||
+      p.id === cleanSlug ||
+      p.slug === rawSlug ||
+      p.id === rawSlug ||
+      p.slug === decodedSlug ||
+      p.sourceUrl === cleanSlug ||
+      p.sourceUrl === decodedSlug ||
+      p.sourceUrl === rawSlug
+  );
+  const post: BlogPost =
+    (currentIndex !== -1 ? blogPosts[currentIndex] : blogPosts[0]) ||
+    (SEED_BLOG_POSTS_DATA[0] as BlogPost);
+
+  // Auto-redirect if an external article link was opened directly
+  useEffect(() => {
+    if (isExternalSlug && externalTargetUrl && typeof window !== "undefined") {
+      window.location.replace(externalTargetUrl);
+    }
+  }, [isExternalSlug, externalTargetUrl]);
 
   // Navigation Prev / Next
   const prevPost =
@@ -230,6 +270,38 @@ export function SingleBlogPage() {
   const currentUrl = typeof window !== "undefined" ? window.location.href : `https://sharifrealty.com/blogs/${post.slug}`;
   const encodedUrl = encodeURIComponent(currentUrl);
   const encodedTitle = encodeURIComponent(post.title);
+
+  if (isExternalSlug && externalTargetUrl) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-center items-center px-4 py-16">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-[#EAE6DF] p-8 text-center space-y-5 shadow-lg">
+          <div className="size-16 rounded-full bg-amber-50 text-[#B38B59] flex items-center justify-center mx-auto shadow-inner">
+            <ExternalLink className="size-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="font-serif text-2xl font-bold text-[#0F172A]">Opening External Article</h2>
+            <p className="text-xs text-slate-500 break-all">{externalTargetUrl}</p>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            You are being forwarded directly to the official news source. If redirection does not start automatically, please click below:
+          </p>
+          <a
+            href={externalTargetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-[#0F172A] hover:bg-[#B38B59] text-white text-xs font-bold transition-all shadow-md"
+          >
+            Open Source Article Now <ExternalLink className="size-3.5" />
+          </a>
+          <div className="pt-2 border-t border-slate-100">
+            <Link to="/blogs" className="text-xs text-slate-500 hover:text-slate-900 font-medium">
+              &larr; Return to Sharif Realty Blogs
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1E293B]">
@@ -909,9 +981,12 @@ export function SingleBlogPage() {
                     >
                       <div className="size-14 rounded-lg overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/5">
                         <img
-                          src="/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg"
+                          src={art.coverImage || (art.galleryImages && art.galleryImages[0]) || DEFAULT_BLOG_IMAGE}
                           alt={art.title}
                           className="size-full object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_BLOG_IMAGE;
+                          }}
                         />
                       </div>
                       <div className="space-y-1 min-w-0">
