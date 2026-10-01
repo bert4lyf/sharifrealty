@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import { getPublicSettings } from "@/lib/public.functions";
 import { loadGa4 } from "@/lib/analytics";
 
-/** Loads GA4 using the measurement ID configured in the admin settings screen. */
+/** Loads GA4 using the measurement ID configured in the admin settings screen and Vercel Web Analytics. */
 export function Analytics() {
   const { data } = useQuery({
     queryKey: ["public-settings"],
@@ -16,5 +17,5 @@ export function Analytics() {
     if (measurementId) loadGa4(measurementId);
   }, [measurementId]);
 
-  return null;
+  return <VercelAnalytics />;
 }
