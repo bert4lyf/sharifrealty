@@ -17,6 +17,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { StickyMobileCta } from "@/components/sticky-mobile-cta";
 import { PageLoader } from "@/components/page-loader";
 import { Analytics } from "@/components/analytics";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/not-found";
@@ -146,6 +147,7 @@ function RootComponent() {
       <ClientOnly fallback={null}>
         <Analytics />
       </ClientOnly>
+      <VercelAnalytics />
     </QueryClientProvider>
   );
 }
