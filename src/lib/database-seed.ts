@@ -511,6 +511,54 @@ export const SEED_PROPERTIES_DATA: AdminPropertyPost[] = [
 
 export const SEED_BLOG_POSTS_DATA: BlogPost[] = [
   {
+    id: "blog-another-home-sold-2026",
+    title: "Another Home Sold",
+    slug: "another-home-sold",
+    excerpt: "Market analysis and real estate updates from Sharif Realty.",
+    content:
+      "<p><strong>Another Win for a Waterbury Family! 🏡</strong></p><p>We are thrilled to announce that this charming home in Waterbury, CT, is officially <strong>SOLD!</strong></p><p>Our team worked diligently to ensure a seamless transaction for both the buyers and sellers. A special congratulations to our Broker / Owner <strong>Majeed Sharif</strong> for his dedication and guiding this successful closing.</p><p>Sharif Realty Group continues to deliver exceptional results and client satisfaction across Connecticut and Massachusetts.</p><p>Thinking of buying or selling? Let's make your real estate goals a reality!</p><p><strong>Contact Sharif Realty Group today:</strong><br />Phone: <a href=\"tel:12038028099\">+1 (203) 802-8099</a><br />Email: <a href=\"mailto:Sharifrealty19@gmail.com\">Sharifrealty19@gmail.com</a><br />Website: <a href=\"https://sharif-realestate.org\" target=\"_blank\" rel=\"noopener noreferrer\">www.sharif-realestate.org</a></p>",
+    date: "2026-10-10",
+    category: "Company News",
+    author: "Majeed Sharif",
+    authorRole: "Principal Broker",
+    readTime: "4 min read",
+    coverImage: "/wp-content/uploads/another-home-sold-waterbury.jpg",
+    galleryImages: [
+      "/wp-content/uploads/another-home-sold-waterbury.jpg",
+      "/wp-content/uploads/waterbury-under-contract.jpg",
+    ],
+    propertySpecs: {
+      address: "Waterbury, CT 06704",
+      propertyType: "Single Family",
+      lastSold: "Officially Sold in 2026",
+    },
+    tags: ["Company News", "Sold", "Waterbury", "Success", "Featured"],
+    status: "Published",
+    comments: 0,
+    seoScore: 96,
+    views: 18,
+  },
+  {
+    id: "blog-ct-mortgage-rates-surge-722",
+    title: "Mortgage rates surge to 7.22% as rising costs impact Connecticut housing market",
+    slug: "mortgage-rates-surge-to-7-22-as-rising-costs-impact-connecticut-housing-market",
+    excerpt:
+      "Average 30-year fixed mortgage rates in Connecticut have climbed to around 7.22%, cooling some buyer competition, though home price cuts continue to trail the rest of the...",
+    content:
+      "<p>Average 30-year fixed mortgage rates in Connecticut have climbed to around <strong>7.22%</strong>, cooling some buyer competition, though home price cuts continue to trail the rest of the nation as inventory remains tight across Hartford, New Haven, and Fairfield counties.</p><p>With rising borrowing costs, Connecticut homebuyers and sellers must navigate market conditions with strategic pricing and experienced guidance. According to regional housing metrics, while higher rates have moderated the frenzy of bidding wars in some price brackets, well-maintained single-family properties in prime school districts continue to attract strong attention.</p><p>At Sharif Realty Group, we monitor daily rate fluctuations, local absorption rates, and lender programs to help buyers identify the right financing strategies and enable sellers to price precisely for maximum net proceeds.</p><p>For personalized guidance on purchasing or selling in today's dynamic Connecticut market, contact Majeed Sharif at <a href=\"tel:12038028099\">(203) 802-8099</a> or email <a href=\"mailto:Sharifrealty19@gmail.com\">Sharifrealty19@gmail.com</a>.</p>",
+    date: "2026-09-16",
+    category: "Market Trends",
+    author: "Majeed Sharif",
+    authorRole: "Principal Broker",
+    readTime: "4 min read",
+    coverImage: "/wp-content/uploads/ct-mortgage-rates-surge.jpg",
+    tags: ["Market Trends", "Mortgage", "Connecticut", "Interest Rates", "NAR"],
+    status: "Published",
+    comments: 0,
+    seoScore: 94,
+    views: 42,
+  },
+  {
     id: "blog-1",
     title:
       "Off Market 4 bed 3 bath 1,724sqft 1,724 square feet 6,534sqft lot 6,534 square foot lot 102 Madera Dr, Waterbury, CT 06704 Property type Single Family Year built 1987 Last sold $369K in 2024 Price per sqft $214 Garage",

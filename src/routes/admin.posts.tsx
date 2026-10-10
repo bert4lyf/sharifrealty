@@ -209,20 +209,47 @@ export default function AdminBlogPostsPage() {
     }
   };
 
+  const handleExportBlogs = () => {
+    try {
+      const jsonStr = JSON.stringify(blogPosts, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "published-blogs.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded published-blogs.json successfully!");
+    } catch {
+      toast.error("Failed to export blogs JSON.");
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-full">
       <AdminPageHeader
         title="Manage Blog Posts"
         description="Publish market reports, off-market property highlights, and luxury real estate advisories."
         action={
-          <button
-            type="button"
-            onClick={handleOpenNew}
-            className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          >
-            <Plus className="size-4" />
-            <span>Write New Article</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportBlogs}
+              className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-white dark:border-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="Download published blogs data"
+            >
+              <UploadCloud className="size-4 text-[#B38B59]" />
+              <span>Export Blogs JSON</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenNew}
+              className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>Write New Article</span>
+            </button>
+          </div>
         }
       />
 

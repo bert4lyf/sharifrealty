@@ -401,7 +401,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [siteOptions, setSiteOptions] = useState<SiteOptionsData>(SEED_SITE_OPTIONS);
   const [leads, setLeads] = useState<CrmLead[]>(SEED_CRM_LEADS);
 
-  const SEED_VERSION_KEY = "sharif.admin.seed_version_v10";
+  const SEED_VERSION_KEY = "sharif.admin.seed_version_v11";
   const DEMO_USER_EMAILS = [
     "admin@gmail.com",
     "sarah.j@sharifrealty.com",
@@ -411,13 +411,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const version = typeof window !== "undefined" ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
-    if (version !== "v10") {
+    if (version !== "v11") {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(POSTS_KEY);
         window.localStorage.removeItem(BLOG_KEY);
         window.localStorage.removeItem(USERS_KEY);
         window.localStorage.removeItem(MEDIA_KEY);
-        window.localStorage.setItem(SEED_VERSION_KEY, "v10");
+        window.localStorage.setItem(SEED_VERSION_KEY, "v11");
       }
       setPosts(SEED_PROPERTIES);
       setBlogPosts(SEED_BLOG_POSTS);
@@ -426,7 +426,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     } else {
       setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
       const loadedBlogs = readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS);
-      const cleanBlogs = loadedBlogs.map((b) => ({
+
+      // Smart merge: ensure all official seed blog posts are present in loadedBlogs so all visitors see newest updates
+      const existingSlugs = new Set(loadedBlogs.map((b) => b.slug));
+      const missingSeedBlogs = SEED_BLOG_POSTS.filter((sb) => !existingSlugs.has(sb.slug));
+      const allBlogs = [...missingSeedBlogs, ...loadedBlogs];
+
+      const cleanBlogs = allBlogs.map((b) => ({
         ...b,
         coverImage:
           b.coverImage && b.coverImage.trim() !== ""
@@ -434,6 +440,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
             : "/wp-content/themes/wpresidence/img/defaults/default_property_listings.jpg",
       }));
       setBlogPosts(cleanBlogs);
+      persist(BLOG_KEY, cleanBlogs);
+
       const loadedUsers = readJson<AppUser[]>(USERS_KEY, SEED_USERS);
       const cleanUsers = loadedUsers.filter(
         (u) => !DEMO_USER_EMAILS.includes(u.email.toLowerCase()),
