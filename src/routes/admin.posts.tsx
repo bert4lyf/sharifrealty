@@ -20,11 +20,21 @@ import {
   UploadCloud,
   Layers,
   Eye,
+  Database,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAdmin } from "@/lib/admin-store";
 import type { BlogPost } from "@/lib/types";
 import { AdminPageHeader } from "@/components/admin/wp-shell";
+import {
+  checkCloudHealth,
+  getActiveSupabaseCredentials,
+  saveActiveSupabaseCredentials,
+} from "@/lib/cloud-posts";
 
 export const Route = createFileRoute("/admin/posts")({
   head: () => ({
@@ -40,6 +50,40 @@ const DEFAULT_BLOG_IMAGE = "/wp-content/themes/wpresidence/img/defaults/default_
 
 export default function AdminBlogPostsPage() {
   const { blogPosts, createBlogPost, updateBlogPost, deleteBlogPost, mediaAssets, addMediaAsset } = useAdmin();
+
+  // Cloud status state
+  const [cloudStatus, setCloudStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [checkingCloud, setCheckingCloud] = useState(false);
+  const [showCloudModal, setShowCloudModal] = useState(false);
+  const [customCloudUrl, setCustomCloudUrl] = useState("");
+  const [customCloudKey, setCustomCloudKey] = useState("");
+
+  const refreshCloudHealth = async () => {
+    setCheckingCloud(true);
+    const health = await checkCloudHealth();
+    setCloudStatus(health);
+    setCheckingCloud(false);
+  };
+
+  useEffect(() => {
+    const creds = getActiveSupabaseCredentials();
+    if (creds) {
+      setCustomCloudUrl(creds.url);
+      setCustomCloudKey(creds.key);
+    }
+    refreshCloudHealth();
+  }, []);
+
+  const handleSaveCloudCredentials = async () => {
+    if (!customCloudUrl.trim() || !customCloudKey.trim()) {
+      toast.error("Please provide both Supabase URL and Anon Key.");
+      return;
+    }
+    saveActiveSupabaseCredentials(customCloudUrl.trim(), customCloudKey.trim());
+    toast.success("Cloud database credentials saved!");
+    setShowCloudModal(false);
+    refreshCloudHealth();
+  };
 
   const [selectedCategory, setSelectedCategory] = useState<string>("All Posts");
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,6 +278,28 @@ export default function AdminBlogPostsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setShowCloudModal(true)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border ${
+                cloudStatus?.ok
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                  : "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+              }`}
+              title="Cloud Database Sync Status"
+            >
+              {cloudStatus?.ok ? (
+                <>
+                  <Wifi className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Cloud Sync: Active</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="size-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Connect Cloud DB</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={handleExportBlogs}
               className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-white dark:border-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               title="Download published blogs data"
@@ -252,6 +318,44 @@ export default function AdminBlogPostsPage() {
           </div>
         }
       />
+
+      {/* Cloud Sync Status Banner */}
+      {cloudStatus?.ok ? (
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 shadow-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>
+              <strong>Live Multi-Device Sync Active:</strong> Articles published here automatically push to your cloud database in real-time, instantly visible on any phone or device.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={refreshCloudHealth}
+            disabled={checkingCloud}
+            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <RefreshCw className={`size-3 ${checkingCloud ? "animate-spin" : ""}`} />
+            <span>Verify</span>
+          </button>
+        </div>
+      ) : (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
+          <div className="flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <div>
+              <strong className="font-semibold">Connect Cloud Database for Multi-Device Sync:</strong> Posts are currently cached locally. Connect your Supabase project so any new article you publish appears on all devices instantly in real-time without needing a redeploy.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCloudModal(true)}
+            className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer text-xs flex items-center gap-1.5"
+          >
+            <Database className="size-3.5" />
+            <span>Connect Database</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Table Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -763,6 +867,106 @@ export default function AdminBlogPostsPage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cloud Database Setup Modal */}
+      {showCloudModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 max-w-lg w-full p-6 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Database className="size-5 text-[#B38B59]" />
+                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                  Cloud Database Connection
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCloudModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Connect your Supabase project so newly published articles and listings sync instantly across all visitor phones, tablets, and computers in real-time.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  Supabase Project URL
+                </label>
+                <input
+                  type="text"
+                  value={customCloudUrl}
+                  onChange={(e) => setCustomCloudUrl(e.target.value)}
+                  placeholder="https://your-project-id.supabase.co"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-[#C5A880]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  Supabase Anon / Publishable Key
+                </label>
+                <textarea
+                  rows={3}
+                  value={customCloudKey}
+                  onChange={(e) => setCustomCloudKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-[#C5A880]"
+                />
+              </div>
+
+              {cloudStatus && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                    cloudStatus.ok
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {cloudStatus.ok ? (
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                  )}
+                  <span>{cloudStatus.message}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={refreshCloudHealth}
+                disabled={checkingCloud}
+                className="px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className={`size-3.5 ${checkingCloud ? "animate-spin" : ""}`} />
+                <span>Test Connection</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCloudModal(false)}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCloudCredentials}
+                  className="px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  Save & Connect
+                </button>
+              </div>
             </div>
           </div>
         </div>

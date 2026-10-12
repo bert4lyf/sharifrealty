@@ -7,6 +7,12 @@ import {
   SEED_MEDIA_ASSETS_DATA,
   SEED_CRM_LEADS_DATA,
 } from "./database-seed";
+import {
+  fetchLiveCloudBlogPosts,
+  upsertLiveCloudBlogPost,
+  deleteLiveCloudBlogPost,
+  subscribeToLiveCloudBlogPosts,
+} from "./cloud-posts";
 
 export const SHARIF_MEDIA_BASE = "https://sharifrealty.com/wp-content/uploads";
 export const FALLBACK_IMAGE = `${SHARIF_MEDIA_BASE}/2024/01/sharif-realty-placeholder.jpg`;
@@ -401,7 +407,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [siteOptions, setSiteOptions] = useState<SiteOptionsData>(SEED_SITE_OPTIONS);
   const [leads, setLeads] = useState<CrmLead[]>(SEED_CRM_LEADS);
 
-  const SEED_VERSION_KEY = "sharif.admin.seed_version_v11";
+  const SEED_VERSION_KEY = "sharif.admin.seed_version_v12";
   const DEMO_USER_EMAILS = [
     "admin@gmail.com",
     "sarah.j@sharifrealty.com",
@@ -411,13 +417,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const version = typeof window !== "undefined" ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
-    if (version !== "v11") {
+    if (version !== "v12") {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(POSTS_KEY);
         window.localStorage.removeItem(BLOG_KEY);
         window.localStorage.removeItem(USERS_KEY);
         window.localStorage.removeItem(MEDIA_KEY);
-        window.localStorage.setItem(SEED_VERSION_KEY, "v11");
+        window.localStorage.setItem(SEED_VERSION_KEY, "v12");
       }
       setPosts(SEED_PROPERTIES);
       setBlogPosts(SEED_BLOG_POSTS);
@@ -469,6 +475,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setSiteOptions(readJson<SiteOptionsData>(SETTINGS_KEY, SEED_SITE_OPTIONS));
     setLeads(readJson<CrmLead[]>(LEADS_KEY, SEED_CRM_LEADS));
     setReady(true);
+
+    // Asynchronously fetch live posts from cloud database
+    fetchLiveCloudBlogPosts().then((cloudBlogs) => {
+      if (cloudBlogs && cloudBlogs.length > 0) {
+        setBlogPosts((prev) => {
+          const cloudSlugs = new Set(cloudBlogs.map((b) => b.slug));
+          const remaining = prev.filter((b) => !cloudSlugs.has(b.slug));
+          const merged = [...cloudBlogs, ...remaining];
+          persist(BLOG_KEY, merged);
+          return merged;
+        });
+      }
+    });
   }, []);
 
   const persist = useCallback((key: string, data: unknown) => {
@@ -484,7 +503,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Real-time listener for site-wide instant sync
+  // Real-time listener for site-wide instant sync & cloud updates
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -503,11 +522,31 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setSiteOptions(readJson<SiteOptionsData>(SETTINGS_KEY, SEED_SITE_OPTIONS));
     };
 
+    const handleCloudSync = () => {
+      fetchLiveCloudBlogPosts().then((cloudBlogs) => {
+        if (cloudBlogs && cloudBlogs.length > 0) {
+          setBlogPosts((prev) => {
+            const cloudSlugs = new Set(cloudBlogs.map((b) => b.slug));
+            const remaining = prev.filter((b) => !cloudSlugs.has(b.slug));
+            const merged = [...cloudBlogs, ...remaining];
+            persist(BLOG_KEY, merged);
+            return merged;
+          });
+        }
+      });
+    };
+
     window.addEventListener("storage", handleSync);
     window.addEventListener("sharif_admin_store_sync", handleSync);
+    window.addEventListener("sharif_cloud_config_updated", handleCloudSync);
+
+    const unsubscribeCloud = subscribeToLiveCloudBlogPosts(handleCloudSync);
+
     return () => {
       window.removeEventListener("storage", handleSync);
       window.removeEventListener("sharif_admin_store_sync", handleSync);
+      window.removeEventListener("sharif_cloud_config_updated", handleCloudSync);
+      unsubscribeCloud();
     };
   }, []);
 
@@ -885,6 +924,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = [newBlog, ...blogPosts];
       setBlogPosts(updated);
       persist(BLOG_KEY, updated);
+      upsertLiveCloudBlogPost(newBlog).catch((e) => console.warn("[CloudSync] Background save error:", e));
       return newBlog;
     },
     [blogPosts, persist]
@@ -895,6 +935,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = blogPosts.map((b) => (b.id === id ? ({ ...b, ...draft } as BlogPost) : b));
       setBlogPosts(updated);
       persist(BLOG_KEY, updated);
+      const post = updated.find((b) => b.id === id);
+      if (post) {
+        upsertLiveCloudBlogPost(post).catch((e) => console.warn("[CloudSync] Background update error:", e));
+      }
     },
     [blogPosts, persist]
   );
@@ -904,6 +948,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = blogPosts.filter((b) => b.id !== id);
       setBlogPosts(updated);
       persist(BLOG_KEY, updated);
+      deleteLiveCloudBlogPost(id).catch((e) => console.warn("[CloudSync] Background delete error:", e));
     },
     [blogPosts, persist]
   );
