@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -60,9 +60,14 @@ export default function AdminBlogPostsPage() {
 
   const refreshCloudHealth = async () => {
     setCheckingCloud(true);
-    const health = await checkCloudHealth();
-    setCloudStatus(health);
-    setCheckingCloud(false);
+    try {
+      const health = await checkCloudHealth();
+      setCloudStatus(health);
+    } catch (err: any) {
+      setCloudStatus({ ok: false, message: err?.message || "Failed to check cloud status" });
+    } finally {
+      setCheckingCloud(false);
+    }
   };
 
   useEffect(() => {
