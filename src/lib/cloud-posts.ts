@@ -210,3 +210,133 @@ export function subscribeToLiveCloudBlogPosts(onUpdate: () => void): () => void 
     return () => {};
   }
 }
+
+export async function fetchLiveCloudProperties(): Promise<any[] | null> {
+  const client = getCloudClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from("properties")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !data) {
+      return null;
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      description: row.description,
+      author: row.author || "Majeed Sharif",
+      category: row.category || "Commercial",
+      propertyType: row.property_type || row.category || "Commercial",
+      tags: row.tags || [],
+      status: row.is_archived ? "Draft" : "Published",
+      listingType: row.listing_type || "commercial",
+      propertyStatus: row.status || "for_sale",
+      priceLabel: row.price_label || (row.status === "sold" ? "Sold" : ""),
+      comments: 0,
+      date: row.created_at ? String(row.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      price: Number(row.price) || 0,
+      beds: Number(row.beds) || 0,
+      baths: Number(row.baths) || 0,
+      sqft: Number(row.sqft) || 0,
+      lotSize: row.lot_size,
+      garageSpaces: Number(row.garage_spaces) || 0,
+      yearBuilt: Number(row.year_built) || 2020,
+      address: row.address || "",
+      city: row.city || "",
+      state: row.state || "CT",
+      zip: row.zip || "",
+      latitude: row.latitude ? Number(row.latitude) : 41.56,
+      longitude: row.longitude ? Number(row.longitude) : -73.04,
+      isFeatured: Boolean(row.is_featured),
+      image: row.images?.[0] || row.image || "",
+      images: row.images || [],
+      features: row.features || [],
+    }));
+  } catch (err) {
+    console.warn("[CloudSync] Failed to fetch live cloud properties:", err);
+    return null;
+  }
+}
+
+export async function upsertLiveCloudProperty(property: any): Promise<{ success: boolean; error?: string }> {
+  const client = getCloudClient();
+  if (!client) return { success: false, error: "Cloud database not configured" };
+
+  try {
+    const row = {
+      id: property.id,
+      slug: property.slug,
+      title: property.title,
+      description: property.description || "",
+      price: property.price || 0,
+      status: property.propertyStatus || "for_sale",
+      listing_type: property.listingType || "commercial",
+      address: property.address || "",
+      city: property.city || "",
+      state: property.state || "CT",
+      zip: property.zip || "",
+      beds: property.beds || 0,
+      baths: property.baths || 0,
+      sqft: property.sqft || 0,
+      features: property.features || [],
+      images: property.images || (property.image ? [property.image] : []),
+      is_featured: Boolean(property.isFeatured),
+      is_archived: property.status === "Draft",
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await client.from("properties").upsert(row, { onConflict: "id" });
+    if (error) {
+      console.warn("[CloudSync] Error upserting property:", error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Unknown error" };
+  }
+}
+
+export async function deleteLiveCloudProperty(id: string): Promise<{ success: boolean; error?: string }> {
+  const client = getCloudClient();
+  if (!client) return { success: false, error: "Cloud database not configured" };
+
+  try {
+    const { error } = await client.from("properties").delete().eq("id", id);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Unknown error" };
+  }
+}
+
+export function subscribeToLiveCloudProperties(onUpdate: () => void): () => void {
+  const client = getCloudClient();
+  if (!client) return () => {};
+
+  try {
+    const channel = client
+      .channel("properties_realtime_channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "properties" },
+        () => {
+          onUpdate();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn("[CloudSync] Failed to subscribe to properties realtime:", err);
+    return () => {};
+  }
+}
+

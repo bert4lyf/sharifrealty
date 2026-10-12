@@ -12,6 +12,10 @@ import {
   upsertLiveCloudBlogPost,
   deleteLiveCloudBlogPost,
   subscribeToLiveCloudBlogPosts,
+  fetchLiveCloudProperties,
+  upsertLiveCloudProperty,
+  deleteLiveCloudProperty,
+  subscribeToLiveCloudProperties,
 } from "./cloud-posts";
 
 export const SHARIF_MEDIA_BASE = "https://sharifrealty.com/wp-content/uploads";
@@ -407,7 +411,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [siteOptions, setSiteOptions] = useState<SiteOptionsData>(SEED_SITE_OPTIONS);
   const [leads, setLeads] = useState<CrmLead[]>(SEED_CRM_LEADS);
 
-  const SEED_VERSION_KEY = "sharif.admin.seed_version_v12";
+  const SEED_VERSION_KEY = "sharif.admin.seed_version_v13";
   const DEMO_USER_EMAILS = [
     "admin@gmail.com",
     "sarah.j@sharifrealty.com",
@@ -417,20 +421,36 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const version = typeof window !== "undefined" ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
-    if (version !== "v12") {
+    if (version !== "v13") {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(POSTS_KEY);
         window.localStorage.removeItem(BLOG_KEY);
         window.localStorage.removeItem(USERS_KEY);
         window.localStorage.removeItem(MEDIA_KEY);
-        window.localStorage.setItem(SEED_VERSION_KEY, "v12");
+        window.localStorage.setItem(SEED_VERSION_KEY, "v13");
       }
       setPosts(SEED_PROPERTIES);
       setBlogPosts(SEED_BLOG_POSTS);
       setUsers(SEED_USERS);
       setMediaAssets(SEED_MEDIA_ASSETS);
     } else {
-      setPosts(readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES));
+      const loadedPosts = readJson<AdminPropertyPost[]>(POSTS_KEY, SEED_PROPERTIES);
+      // Smart merge: if the official seed marked any property as 'sold', update it in loadedPosts
+      const mergedPosts = loadedPosts.map((p) => {
+        const seedMatch = SEED_PROPERTIES.find((sp) => sp.id === p.id || sp.slug === p.slug);
+        if (seedMatch && seedMatch.propertyStatus === "sold" && p.propertyStatus !== "sold") {
+          return { ...p, propertyStatus: "sold", priceLabel: seedMatch.priceLabel || "Sold" };
+        }
+        return p;
+      });
+      // Also ensure all seed properties are present
+      const existingIds = new Set(mergedPosts.map((p) => p.id));
+      SEED_PROPERTIES.forEach((sp) => {
+        if (!existingIds.has(sp.id)) mergedPosts.push(sp);
+      });
+      setPosts(mergedPosts);
+      persist(POSTS_KEY, mergedPosts);
+
       const loadedBlogs = readJson<BlogPost[]>(BLOG_KEY, SEED_BLOG_POSTS);
 
       // Smart merge: ensure all official seed blog posts are present in loadedBlogs so all visitors see newest updates
@@ -488,6 +508,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         });
       }
     });
+
+    // Asynchronously fetch live properties from cloud database
+    fetchLiveCloudProperties().then((cloudProps) => {
+      if (cloudProps && cloudProps.length > 0) {
+        setPosts((prev) => {
+          const cloudIds = new Set(cloudProps.map((p) => p.id));
+          const remaining = prev.filter((p) => !cloudIds.has(p.id));
+          const merged = [...cloudProps, ...remaining];
+          persist(POSTS_KEY, merged);
+          return merged;
+        });
+      }
+    });
   }, []);
 
   const persist = useCallback((key: string, data: unknown) => {
@@ -536,17 +569,35 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       });
     };
 
+    const handlePropertiesCloudSync = () => {
+      fetchLiveCloudProperties().then((cloudProps) => {
+        if (cloudProps && cloudProps.length > 0) {
+          setPosts((prev) => {
+            const cloudIds = new Set(cloudProps.map((p) => p.id));
+            const remaining = prev.filter((p) => !cloudIds.has(p.id));
+            const merged = [...cloudProps, ...remaining];
+            persist(POSTS_KEY, merged);
+            return merged;
+          });
+        }
+      });
+    };
+
     window.addEventListener("storage", handleSync);
     window.addEventListener("sharif_admin_store_sync", handleSync);
     window.addEventListener("sharif_cloud_config_updated", handleCloudSync);
+    window.addEventListener("sharif_cloud_config_updated", handlePropertiesCloudSync);
 
-    const unsubscribeCloud = subscribeToLiveCloudBlogPosts(handleCloudSync);
+    const unsubscribeCloudBlogs = subscribeToLiveCloudBlogPosts(handleCloudSync);
+    const unsubscribeCloudProps = subscribeToLiveCloudProperties(handlePropertiesCloudSync);
 
     return () => {
       window.removeEventListener("storage", handleSync);
       window.removeEventListener("sharif_admin_store_sync", handleSync);
       window.removeEventListener("sharif_cloud_config_updated", handleCloudSync);
-      unsubscribeCloud();
+      window.removeEventListener("sharif_cloud_config_updated", handlePropertiesCloudSync);
+      unsubscribeCloudBlogs();
+      unsubscribeCloudProps();
     };
   }, []);
 
@@ -873,6 +924,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = [newPost, ...posts];
       setPosts(updated);
       persist(POSTS_KEY, updated);
+      upsertLiveCloudProperty(newPost);
       return newPost;
     },
     [persist, posts]
@@ -883,6 +935,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = posts.map((p) => (p.id === id ? ({ ...p, ...draft } as AdminPropertyPost) : p));
       setPosts(updated);
       persist(POSTS_KEY, updated);
+      const target = updated.find((p) => p.id === id);
+      if (target) {
+        upsertLiveCloudProperty(target);
+      }
     },
     [persist, posts]
   );
@@ -892,6 +948,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const updated = posts.filter((p) => p.id !== id);
       setPosts(updated);
       persist(POSTS_KEY, updated);
+      deleteLiveCloudProperty(id);
     },
     [persist, posts]
   );

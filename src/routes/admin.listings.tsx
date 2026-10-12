@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -15,12 +15,24 @@ import {
   Maximize2,
   MapPin,
   Eye,
+  Database,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  RefreshCw,
+  X,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAdmin, type AdminPropertyPost } from "@/lib/admin-store";
 import { formatPrice } from "@/lib/format";
 import { AdminPageHeader } from "@/components/admin/wp-shell";
 import { PropertyEditor } from "@/components/admin/property-editor";
+import {
+  checkCloudHealth,
+  getActiveSupabaseCredentials,
+  saveActiveSupabaseCredentials,
+} from "@/lib/cloud-posts";
 
 export const Route = createFileRoute("/admin/listings")({
   head: () => ({
@@ -34,6 +46,45 @@ export const Route = createFileRoute("/admin/listings")({
 
 export default function AdminListingsPage() {
   const { posts, deletePost, updatePost, createPost } = useAdmin();
+
+  // Cloud status state
+  const [cloudStatus, setCloudStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [checkingCloud, setCheckingCloud] = useState(false);
+  const [showCloudModal, setShowCloudModal] = useState(false);
+  const [customCloudUrl, setCustomCloudUrl] = useState("");
+  const [customCloudKey, setCustomCloudKey] = useState("");
+
+  const refreshCloudHealth = async () => {
+    setCheckingCloud(true);
+    try {
+      const health = await checkCloudHealth();
+      setCloudStatus(health);
+    } catch (err: any) {
+      setCloudStatus({ ok: false, message: err?.message || "Failed to check cloud status" });
+    } finally {
+      setCheckingCloud(false);
+    }
+  };
+
+  useEffect(() => {
+    const creds = getActiveSupabaseCredentials();
+    if (creds) {
+      setCustomCloudUrl(creds.url);
+      setCustomCloudKey(creds.key);
+    }
+    refreshCloudHealth();
+  }, []);
+
+  const handleSaveCloudCredentials = async () => {
+    if (!customCloudUrl.trim() || !customCloudKey.trim()) {
+      toast.error("Please provide both Supabase URL and Anon Key.");
+      return;
+    }
+    saveActiveSupabaseCredentials(customCloudUrl.trim(), customCloudKey.trim());
+    toast.success("Cloud database credentials saved!");
+    setShowCloudModal(false);
+    refreshCloudHealth();
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -123,16 +174,88 @@ export default function AdminListingsPage() {
         title="Manage Property Listings"
         description="Active real estate portfolio, commercial developments, and private off-market listings."
         action={
-          <button
-            type="button"
-            onClick={() => setIsAddingNew(true)}
-            className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          >
-            <Plus className="size-4" />
-            <span>Add New Listing</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCloudModal(true)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border ${
+                cloudStatus?.ok
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                  : "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+              }`}
+              title="Cloud Database Sync Status"
+            >
+              {cloudStatus?.ok ? (
+                <>
+                  <Wifi className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Cloud Sync: Active</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="size-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Connect Cloud DB</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddingNew(true)}
+              className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>Add New Listing</span>
+            </button>
+          </div>
         }
       />
+
+      {/* Cloud Sync Status Banner */}
+      {cloudStatus?.ok ? (
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 shadow-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div>
+              <span className="font-bold">Cloud Sync Connected:</span> Property status changes and new listings sync in real-time across all devices.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={refreshCloudHealth}
+            disabled={checkingCloud}
+            className="hover:bg-emerald-100 dark:hover:bg-emerald-900/40 p-1.5 rounded-lg transition-colors cursor-pointer"
+            title="Refresh status"
+          >
+            <RefreshCw className={`size-3.5 ${checkingCloud ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      ) : (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold">Cloud Database:</span> {cloudStatus?.message || "Running in local storage mode. Connect Supabase to sync property edits live across all devices."}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowCloudModal(true)}
+              className="bg-amber-700 hover:bg-amber-800 text-white px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer shadow-xs"
+            >
+              Configure Cloud DB
+            </button>
+            <button
+              type="button"
+              onClick={refreshCloudHealth}
+              disabled={checkingCloud}
+              className="hover:bg-amber-100 dark:hover:bg-amber-900/40 p-1.5 rounded-lg transition-colors cursor-pointer"
+              title="Test connection"
+            >
+              <RefreshCw className={`size-3.5 ${checkingCloud ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Table Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -407,6 +530,114 @@ export default function AdminListingsPage() {
             setEditingProperty(null);
           }}
         />
+      )}
+
+      {/* Cloud Database Connection Modal */}
+      {showCloudModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-[#B38B59]/10 text-[#B38B59] rounded-xl">
+                  <Database className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                    Cloud Database Connection
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Live Supabase sync across all devices &amp; visitors
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCloudModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                Connect your active Supabase database so whenever you mark a property as <strong>Sold</strong>, edit pricing, or add listings, changes are instantly visible in real-time to everyone on any phone or computer.
+              </p>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  Supabase Project URL
+                </label>
+                <input
+                  type="text"
+                  value={customCloudUrl}
+                  onChange={(e) => setCustomCloudUrl(e.target.value)}
+                  placeholder="https://your-project-id.supabase.co"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-[#C5A880]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  Supabase Anon / Publishable Key
+                </label>
+                <textarea
+                  rows={3}
+                  value={customCloudKey}
+                  onChange={(e) => setCustomCloudKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-[#C5A880]"
+                />
+              </div>
+
+              {cloudStatus && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                    cloudStatus.ok
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {cloudStatus.ok ? (
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                  )}
+                  <span>{cloudStatus.message}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={refreshCloudHealth}
+                disabled={checkingCloud}
+                className="px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className={`size-3.5 ${checkingCloud ? "animate-spin" : ""}`} />
+                <span>Test Connection</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCloudModal(false)}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCloudCredentials}
+                  className="px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  Save & Connect
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
